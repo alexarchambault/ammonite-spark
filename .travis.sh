@@ -3,11 +3,11 @@ set -e
 
 case "${MASTER:-"local"}" in
   local)
-    sbt publishLocal test ;;
+    sbt ++$TRAVIS_SCALA_VERSION'!' publishLocal test ;;
   standalone)
-    ./sbt-with-standalone-cluster.sh publishLocal standalone-tests/test ;;
+    ./sbt-with-standalone-cluster.sh ++$TRAVIS_SCALA_VERSION'!' publishLocal standalone-tests/test ;;
   yarn)
-    ./sbt-in-docker-with-yarn-cluster.sh -batch publishLocal yarn-tests/test ;;
+    ./sbt-in-docker-with-yarn-cluster.sh -batch ++$TRAVIS_SCALA_VERSION'!' publishLocal yarn-tests/test ;;
   *)
     echo "Unrecognized master type $MASTER"
     exit 1
