@@ -11,7 +11,7 @@ class SparkReplTests(sparkVersion: String, master: String, conf: (String, String
 
   val check = new TestRepl
 
-  check.session(Init.init(master, sparkVersion, conf: _*))
+  check.session(Init.init(master, sparkVersion, conf))
 
   override def utestAfterAll() =
     check.session(Init.end)

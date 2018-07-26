@@ -7,8 +7,10 @@ import java.nio.file.{Files, Paths}
 
 import ammonite.repl.ReplAPI
 import ammonite.interp.InterpAPI
+import org.apache.spark.SparkContext
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.ui.ConsoleProgressBar
 
 object AmmoniteSparkSessionBuilder {
 
@@ -52,6 +54,19 @@ object AmmoniteSparkSessionBuilder {
       cp #::: classpath(cl.getParent)
     }
   }
+
+  def forceProgressBars(sc: SparkContext): Boolean =
+    sc.progressBar.nonEmpty || {
+      try {
+        val method = classOf[org.apache.spark.SparkContext].getDeclaredMethod("org$apache$spark$SparkContext$$_progressBar_$eq", classOf[Option[Any]])
+        method.setAccessible(true)
+        method.invoke(sc, Some(new ConsoleProgressBar(sc)))
+        true
+      } catch {
+        case _: NoSuchMethodException =>
+          false
+      }
+    }
 
 }
 
@@ -104,6 +119,13 @@ class AmmoniteSparkSessionBuilder
     for ((k, v) <- extraProps if !ignore(k))
       config(k, v)
 
+    this
+  }
+
+  private var forceProgressBars0 = false
+
+  def progressBars(force: Boolean = true): this.type = {
+    forceProgressBars0 = force
     this
   }
 
@@ -234,6 +256,9 @@ class AmmoniteSparkSessionBuilder
           }
       }
     )
+
+    if (forceProgressBars0)
+      AmmoniteSparkSessionBuilder.forceProgressBars(session.sparkContext)
 
     session
   }

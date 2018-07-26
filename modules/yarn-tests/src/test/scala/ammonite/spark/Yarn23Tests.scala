@@ -1,7 +1,7 @@
 package ammonite.spark
 
 object Yarn23Tests extends SparkReplTests(
-  "2.3.1",
+  SparkVersions.latest23,
   "yarn",
   "spark.executor.instances" -> "1",
   "spark.executor.memory" -> "2g",

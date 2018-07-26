@@ -1,6 +1,6 @@
 package ammonite.spark
 
-object Local23Tests extends SparkReplTests(
+object ProgressBar23Tests extends ProgressBarTests(
   SparkVersions.latest23,
   Local.master
 )
