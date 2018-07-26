@@ -7,11 +7,13 @@ cache:
   - $HOME/.cache
   - $HOME/.ivy2/cache
   - $HOME/.sbt
+  - $HOME/standalone-stuff
+  - $HOME/yarn-stuff
 branches:
   only:
   - develop
 matrix:
   include:
   - env: MASTER=local
-  - env: MASTER=standalone
-  - env: MASTER=yarn
+  - env: MASTER=standalone STANDALONE_CACHE=$HOME/standalone-stuff
+  - env: MASTER=yarn YARN_CACHE=$HOME/yarn-stuff

@@ -26,17 +26,18 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 
+CACHE="${YARN_CACHE:-"$(pwd)/target/yarn"}"
 
-mkdir -p target/yarn
+mkdir -p "$CACHE"
 
-if [ ! -x target/yarn/coursier ]; then
-  curl -Lo target/yarn/coursier https://github.com/coursier/coursier/raw/v1.1.0-M6/coursier
-  chmod +x target/yarn/coursier
+if [ ! -x "$CACHE/coursier" ]; then
+  curl -Lo "$CACHE/coursier" https://github.com/coursier/coursier/raw/v1.1.0-M6/coursier
+  chmod +x "$CACHE/coursier"
 fi
 
-if [ ! -x target/yarn/sbt ]; then
-  curl -Lo target/yarn/sbt https://github.com/paulp/sbt-extras/raw/65a871dc720c18614a0d8d0db6b52d25ed98dffb/sbt
-  chmod +x target/yarn/sbt
+if [ ! -x "$CACHE/sbt" ]; then
+  curl -Lo "$CACHE/sbt" https://github.com/paulp/sbt-extras/raw/65a871dc720c18614a0d8d0db6b52d25ed98dffb/sbt
+  chmod +x "$CACHE/sbt"
 fi
 
 if ! docker network inspect "$NETWORK" >/dev/null 2>&1; then
@@ -82,22 +83,22 @@ export INPUT_TXT_URL="hdfs:///user/root/input.txt"
 echo "Copying file to $INPUT_TXT_URL"
 (docker exec -i "$NAMENODE" /usr/local/hadoop/bin/hdfs dfs -put - "$INPUT_TXT_URL") < modules/tests/src/main/resources/input.txt
 
-if [ ! -d target/yarn/hadoop-conf ]; then
+if [ ! -d "$CACHE/hadoop-conf" ]; then
   echo "Getting Hadoop conf dir"
   # Ideally, we should get that conf from the running namenode container
   TRANSIENT_DOCKER_YARN_CLUSTER=0
-  if [ ! -d target/yarn/docker-yarn-cluster ]; then
+  if [ ! -d "$CACHE/docker-yarn-cluster" ]; then
     TRANSIENT_DOCKER_YARN_CLUSTER=1
-    git clone https://github.com/alexarchambault/docker-yarn-cluster.git target/yarn/docker-yarn-cluster
-    cd target/yarn/docker-yarn-cluster
+    git clone https://github.com/alexarchambault/docker-yarn-cluster.git "$CACHE/docker-yarn-cluster"
+    cd "$CACHE/docker-yarn-cluster"
     git checkout 46d76004c4731a0fbf1b8025abede8a5ce0e843c
-    cd ../../..
+    cd -
   fi
-  cp -R target/yarn/docker-yarn-cluster/etc/hadoop target/yarn/hadoop-conf
-  test "$TRANSIENT_DOCKER_YARN_CLUSTER" = 0 || rm -rf target/yarn/docker-yarn-cluster
+  cp -R "$CACHE/docker-yarn-cluster/etc/hadoop" "$CACHE/hadoop-conf"
+  test "$TRANSIENT_DOCKER_YARN_CLUSTER" = 0 || rm -rf "$CACHE/docker-yarn-cluster"
 fi
 
-cat > target/yarn/run.sh << EOF
+cat > "$CACHE/run.sh" << EOF
 #!/usr/bin/env bash
 set -e
 
@@ -110,19 +111,19 @@ done
 exec sbt -J-Xmx1g "\$@"
 EOF
 
-chmod +x target/yarn/run.sh
+chmod +x "$CACHE/run.sh"
 
 docker run -t $(if [ "$INTERACTIVE" = 1 ]; then echo -i; fi) --rm \
   --name ammonite-spark-its \
   --network "$NETWORK" \
   -p 4040:4040 \
-  -v "$(pwd)/target/yarn/coursier:/usr/local/bin/coursier" \
-  -v "$(pwd)/target/yarn/sbt:/usr/local/bin/sbt" \
-  -v "$(pwd)/target/yarn/run.sh:/usr/local/bin/run.sh" \
-  -v "$(pwd)/target/yarn/cache:/root/.cache" \
-  -v "$(pwd)/target/yarn/sbt-home:/root/.sbt" \
-  -v "$(pwd)/target/yarn/ivy2-home:/root/.ivy2" \
-  -v "$(pwd)/target/yarn/hadoop-conf:/etc/hadoop/conf" \
+  -v "$CACHE/coursier:/usr/local/bin/coursier" \
+  -v "$CACHE/sbt:/usr/local/bin/sbt" \
+  -v "$CACHE/run.sh:/usr/local/bin/run.sh" \
+  -v "$CACHE/cache:/root/.cache" \
+  -v "$CACHE/sbt-home:/root/.sbt" \
+  -v "$CACHE/ivy2-home:/root/.ivy2" \
+  -v "$CACHE/hadoop-conf:/etc/hadoop/conf" \
   -v "$(pwd):/workspace" \
   -e INPUT_TXT_URL \
   -w /workspace \
