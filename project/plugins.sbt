@@ -1,1 +1,2 @@
-addSbtPlugin("io.get-coursier" % "sbt-coursier" % "1.1.0-M6")
+addSbtPlugin("com.geirsson" % "sbt-ci-release" % "1.1.2")
+addSbtCoursier

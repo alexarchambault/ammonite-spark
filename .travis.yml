@@ -13,8 +13,16 @@ cache:
 branches:
   only:
   - develop
-matrix:
+before_install:
+  - git fetch --tags
+stages:
+  - name: test
+  - name: release
+    if: (branch = master AND type = push) OR (tag IS present)
+jobs:
   include:
   - env: MASTER=local
   - env: MASTER=standalone STANDALONE_CACHE=$HOME/standalone-stuff
   - env: MASTER=yarn YARN_CACHE=$HOME/yarn-stuff
+  - stage: release
+    script: sbt ci-release

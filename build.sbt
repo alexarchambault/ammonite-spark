@@ -1,6 +1,20 @@
 
 import Settings._
 
+inThisBuild(List(
+  organization := "sh.almond",
+  homepage := Some(url("https://github.com/alexarchambault/ammonite-spark.git")),
+  licenses := List("MIT" -> url("https://spdx.org/licenses/MIT.html")),
+  developers := List(
+    Developer(
+      "alexarchambault",
+      "Alexandre Archambault",
+      "alexandre.archambault@gmail.com",
+      url("https://github.com/alexarchambault")
+    )
+  )
+))
+
 lazy val `spark-stubs` = project
   .underModules
   .settings(

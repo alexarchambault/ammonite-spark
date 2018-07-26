@@ -17,7 +17,6 @@ object Settings {
   private val scala211 = "2.11.12"
 
   lazy val shared = Seq(
-    organization := "sh.almond",
     scalaVersion := scala211,
     scalacOptions ++= Seq(
       "-deprecation",
@@ -25,26 +24,7 @@ object Settings {
       "-explaintypes",
       "-encoding", "utf-8",
       "-unchecked"
-    ),
-    credentials ++= {
-
-      val host = publishTo.value match {
-        case Some(m: MavenRepository) =>
-          new URL(m.root).getHost
-        case Some(other) =>
-          streams.value.log.warn(s"Unrecognized publishTo value: $other")
-          "oss.sonatype.org"
-        case None =>
-          "oss.sonatype.org"
-      }
-
-      Seq("MAVEN_USER", "MAVEN_PASSWORD").map(sys.env.get) match {
-        case Seq(Some(user), Some(pass)) =>
-          Seq(Credentials("Sonatype Nexus Repository Manager", host, user, pass))
-        case _ =>
-          Seq()
-      }
-    }
+    )
   )
 
   lazy val testSettings = Seq(
