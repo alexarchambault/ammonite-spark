@@ -1,0 +1,5 @@
+target/
+notebooks/
+secure/
+*.log
+*.log.?
