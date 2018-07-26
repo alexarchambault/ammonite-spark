@@ -1,0 +1,17 @@
+language: scala
+jdk: oraclejdk8
+script: ./.travis.sh
+sudo: required
+cache:
+  directories:
+  - $HOME/.cache
+  - $HOME/.ivy2/cache
+  - $HOME/.sbt
+branches:
+  only:
+  - develop
+matrix:
+  include:
+  - env: MASTER=local
+  - env: MASTER=standalone
+  - env: MASTER=yarn

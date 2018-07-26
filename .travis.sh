@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -e
+
+case "${MASTER:-"local"}" in
+  local)
+    sbt publishLocal test ;;
+  standalone)
+    ./sbt-with-standalone-cluster.sh publishLocal standalone-tests/test ;;
+  yarn)
+    ./sbt-in-docker-with-yarn-cluster.sh -batch publishLocal yarn-tests/test ;;
+  *)
+    echo "Unrecognized master type $MASTER"
+    exit 1
+    ;;
+esac
