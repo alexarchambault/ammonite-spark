@@ -8,6 +8,21 @@ object AmmoniteSparkSession {
 
   /**
     * In an Ammonite session, use this instead of [[SparkSession.builder()]].
+    *
+    * Example
+    * {{{
+    *
+    *   @ import $ivy.`org.apache.spark::spark-sql:2.2.1`
+    *   @ import $ivy.`sh.almond::ammonite-spark:0.1.0-SNAPSHOT`
+    *   @ import org.apache.spark.sql._
+    *
+    *   @ val spark = AmmoniteSparkSession.builder().appName("test-ammonite").getOrCreate()
+    *
+    *   @ def sc = spark.sparkContext
+    *
+    *   @ val rdd = sc.parallelize(1 to 100, 10)
+    *
+    * }}}
     */
   def builder()
    (implicit
