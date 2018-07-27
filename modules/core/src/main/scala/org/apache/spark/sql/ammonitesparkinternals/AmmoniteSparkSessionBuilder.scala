@@ -1,7 +1,7 @@
 package org.apache.spark.sql.ammonitesparkinternals
 
 import java.io.File
-import java.net.InetAddress
+import java.net.{InetAddress, URI}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
@@ -54,6 +54,19 @@ object AmmoniteSparkSessionBuilder {
       cp #::: classpath(cl.getParent)
     }
   }
+
+  private lazy val javaDirs = {
+    val l = Seq(sys.props("java.home")) ++
+      sys.props.get("java.ext.dirs").toSeq.flatMap(_.split(File.pathSeparator)).filter(_.nonEmpty) ++
+      sys.props.get("java.endorsed.dirs").toSeq.flatMap(_.split(File.pathSeparator)).filter(_.nonEmpty)
+    l.map(_.stripSuffix("/") + "/")
+  }
+
+  def isJdkJar(uri: URI): Boolean =
+    uri.getScheme == "file" && {
+      val path = new File(uri).getAbsolutePath
+      javaDirs.exists(path.startsWith)
+    }
 
   def forceProgressBars(sc: SparkContext): Boolean =
     sc.progressBar.nonEmpty || {
@@ -165,14 +178,23 @@ class AmmoniteSparkSessionBuilder
         .filter(AmmoniteSparkSessionBuilder.shouldPassToSpark)
         .map(_.getAbsoluteFile.toURI.toASCIIString)
 
-    val baseJars = AmmoniteSparkSessionBuilder.classpath(
-      replApi
-        .sess
-        .frames
-        .last
-        .classloader
-        .getParent
-    ).map(_.toURI.toASCIIString).toVector
+    val baseJars = {
+      val cp = AmmoniteSparkSessionBuilder.classpath(
+        replApi
+          .sess
+          .frames
+          .last
+          .classloader
+          .getParent
+      )
+
+      cp
+        .map(_.toURI)
+        // assuming the JDK on the YARN machines already have those
+        .filter(u => !AmmoniteSparkSessionBuilder.isJdkJar(u))
+        .map(_.toASCIIString)
+        .toVector
+    }
 
     val jars = (baseJars ++ sessionJars).distinct
 
