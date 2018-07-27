@@ -10,9 +10,6 @@ cache:
   - $HOME/.sbt
   - $HOME/standalone-stuff
   - $HOME/yarn-stuff
-branches:
-  only:
-  - master
 before_install:
   - git fetch --tags
 stages:
