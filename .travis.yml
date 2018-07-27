@@ -12,13 +12,13 @@ cache:
   - $HOME/yarn-stuff
 branches:
   only:
-  - develop
+  - master
 before_install:
   - git fetch --tags
 stages:
   - name: test
   - name: release
-    if: (branch = develop AND type = push) OR (tag IS present)
+    if: (branch = master AND type = push) OR (tag IS present)
 jobs:
   include:
   - env: MASTER=local
