@@ -32,6 +32,7 @@ In both cases, ensure you are using scala 2.11.x.
 At the Ammonite prompt, load the Spark 2.x version of your choice, along with ammonite-spark,
 ```scala
 @ import $ivy.`org.apache.spark::spark-sql:2.3.1`
+@ interp.repositories() = interp.repositories() :+ coursier.MavenRepository("https://oss.sonatype.org/content/repositories/snapshots")
 @ import $ivy.`sh.almond::ammonite-spark:0.0.1+7-cea71a49-SNAPSHOT`
 ```
 
