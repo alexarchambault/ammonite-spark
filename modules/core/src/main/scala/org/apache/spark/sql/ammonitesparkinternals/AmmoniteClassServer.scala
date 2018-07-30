@@ -51,7 +51,12 @@ final class AmmoniteClassServer(host: String, bindTo: String, port: Int, frames:
 
   private val server = new Server(socketAddress)
   server.setHandler(handler)
-  server.start()
+
+  try server.start()
+  catch {
+    case e: Throwable =>
+      throw new Exception(s"Error starting class server at $uri", e)
+  }
 
   def stop(): Unit =
     server.stop()
