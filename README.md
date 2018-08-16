@@ -15,7 +15,8 @@ Run [spark](https://spark.apache.org/) calculations from [Ammonite](http://ammon
    1. [Syncing dependencies](#syncing-dependencies)
 3. [Using with standalone cluster](#using-with-standalone-cluster)
 4. [Using with YARN cluster](#using-with-yarn-cluster)
-5. [Missing](#missing)
+5. [Troubleshooting](#troubleshooting)
+6. [Missing](#missing)
 
 
 
@@ -100,6 +101,24 @@ Set the master to `"yarn"` when building the session, e.g.
 Ensure the configuration directory of the cluster is set in `HADOOP_CONF_DIR` or `YARN_CONF_DIR` in the environment, or is available at `/etc/hadoop/conf`. This directory should contain files like `core-site.xml`, `hdfs-site.xml`, … Ensure also that the machine you run Ammonite on can indeed act as the driver (it should have access to and be accessible from the YARN nodes, etc.).
 
 Before raising issues, ensure you are aware of all that needs to be set up to get a working spark-shell from a Spark distribution, and that all of them are passed in one way or another to the SparkSession created from Ammonite.
+
+## Troubleshooting
+
+### Getting `org.apache.spark.sql.AnalysisException` when calling `.toDS`
+
+Add `org.apache.spark.sql.catalyst.encoders.OuterScopes.addOuterScope(this)` on the same lines as those where you define case classes involved, like
+```scala
+@ import spark.implicits._
+import spark.implicits._
+
+@ org.apache.spark.sql.catalyst.encoders.OuterScopes.addOuterScope(this); case class Foo(id: String, value: Int)
+defined class Foo
+
+@  val ds = List(Foo("Alice", 42), Foo("Bob", 43)).toDS
+ds: Dataset[Foo] = [id: string, value: int]
+```
+
+(This should likely be added automatically in the future.)
 
 ## Missing
 
