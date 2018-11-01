@@ -218,13 +218,13 @@ class AmmoniteSparkSessionBuilder
 
     val jars = (baseJars ++ sessionJars).distinct
 
-    println("Getting spark JARs")
-    val sparkJars = SparkDependencies.sparkJars(interpApi.repositories(), Nil) // interpApi.profiles().sorted)
+//    println("Getting spark JARs")
+//    val sparkJars = SparkDependencies.sparkJars(interpApi.repositories(), Nil) // interpApi.profiles().sorted)
 
     if (isYarn())
-      config("spark.yarn.jars", sparkJars.mkString(","))
+      config("spark.yarn.jars", jars.mkString(","))
 
-    config("spark.jars", jars.filterNot(sparkJars.toSet).mkString(","))
+    config("spark.jars", jars.mkString(","))
 
     val classServer = new AmmoniteClassServer(
       host(),
