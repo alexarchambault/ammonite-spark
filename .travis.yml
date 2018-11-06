@@ -1,5 +1,4 @@
 language: scala
-scala: 2.11.12
 jdk: oraclejdk8
 script: ./.travis.sh
 sudo: required
@@ -19,7 +18,14 @@ stages:
 jobs:
   include:
   - env: MASTER=local
+    scala: 2.11.12
+  - env: MASTER=local
+    scala: 2.12.7
   - env: MASTER=standalone STANDALONE_CACHE=$HOME/standalone-stuff
+    scala: 2.11.12
   - env: MASTER=yarn YARN_CACHE=$HOME/yarn-stuff
+    scala: 2.11.12
+  - env: MASTER=yarn YARN_CACHE=$HOME/yarn-stuff
+    scala: 2.12.7
   - stage: release
     script: sbt ci-release

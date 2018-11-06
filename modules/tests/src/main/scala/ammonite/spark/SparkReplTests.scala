@@ -506,42 +506,44 @@ class SparkReplTests(sparkVersion: String, master: String, conf: (String, String
     // tests below are custom ones
 
     "algebird" - {
-      sparkSession(
-        """
-            @ import $ivy.`com.twitter::algebird-spark:0.13.0`
+      if (scala.util.Properties.versionNumberString.startsWith("2.11."))
+        // no algebird-spark in scala 2.12 yet
+        sparkSession(
+          """
+              @ import $ivy.`com.twitter::algebird-spark:0.13.0`
 
-            @ AmmoniteSparkSession.sync()
+              @ AmmoniteSparkSession.sync()
 
-            @ import com.twitter.algebird.Semigroup
-            import com.twitter.algebird.Semigroup
+              @ import com.twitter.algebird.Semigroup
+              import com.twitter.algebird.Semigroup
 
-            @ import com.twitter.algebird.spark._
-            import com.twitter.algebird.spark._
+              @ import com.twitter.algebird.spark._
+              import com.twitter.algebird.spark._
 
-            @ case class Foo(n: Int, weight: Double)
-            defined class Foo
+              @ case class Foo(n: Int, weight: Double)
+              defined class Foo
 
-            @ implicit val fooSemigroup: Semigroup[Foo] = new Semigroup[Foo] {
-            @   def plus(a: Foo, b: Foo): Foo =
-            @     Foo(a.n + b.n, a.weight + b.weight)
-            @ }
+              @ implicit val fooSemigroup: Semigroup[Foo] = new Semigroup[Foo] {
+              @   def plus(a: Foo, b: Foo): Foo =
+              @     Foo(a.n + b.n, a.weight + b.weight)
+              @ }
 
-            @ val rdd = sc.parallelize((1 to 100).map(n => n.toString.take(1) -> Foo(n, n % 10)), 10)
+              @ val rdd = sc.parallelize((1 to 100).map(n => n.toString.take(1) -> Foo(n, n % 10)), 10)
 
-            @ val res = rdd.algebird.sumByKey[String, Foo].collect().sortBy(_._1)
-            res: Array[(String, Foo)] = Array(
-              ("1", Foo(246, 46.0)),
-              ("2", Foo(247, 47.0)),
-              ("3", Foo(348, 48.0)),
-              ("4", Foo(449, 49.0)),
-              ("5", Foo(550, 50.0)),
-              ("6", Foo(651, 51.0)),
-              ("7", Foo(752, 52.0)),
-              ("8", Foo(853, 53.0)),
-              ("9", Foo(954, 54.0))
-            )
-        """
-      )
+              @ val res = rdd.algebird.sumByKey[String, Foo].collect().sortBy(_._1)
+              res: Array[(String, Foo)] = Array(
+                ("1", Foo(246, 46.0)),
+                ("2", Foo(247, 47.0)),
+                ("3", Foo(348, 48.0)),
+                ("4", Foo(449, 49.0)),
+                ("5", Foo(550, 50.0)),
+                ("6", Foo(651, 51.0)),
+                ("7", Foo(752, 52.0)),
+                ("8", Foo(853, 53.0)),
+                ("9", Foo(954, 54.0))
+              )
+          """
+        )
     }
 
   }

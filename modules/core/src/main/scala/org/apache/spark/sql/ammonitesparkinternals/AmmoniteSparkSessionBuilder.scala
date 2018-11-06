@@ -89,16 +89,25 @@ class AmmoniteSparkSessionBuilder
    replApi: ReplAPI
  ) extends SparkSession.Builder {
 
-  private val options0: scala.collection.Map[String, String] =
-    try {
-      val f = classOf[SparkSession.Builder].getDeclaredField("org$apache$spark$sql$SparkSession$Builder$$options")
-      f.setAccessible(true)
-      f.get(this).asInstanceOf[scala.collection.mutable.HashMap[String, String]]
-    } catch {
-      case t: Throwable =>
-        println(s"Warning: can't read SparkSession Builder options, caught $t")
+  private val options0: scala.collection.Map[String, String] = {
+
+    def fieldVia(name: String): Option[scala.collection.mutable.HashMap[String, String]] =
+      try {
+        val f = classOf[SparkSession.Builder].getDeclaredField(name)
+        f.setAccessible(true)
+        Some(f.get(this).asInstanceOf[scala.collection.mutable.HashMap[String, String]])
+      } catch {
+        case _: NoSuchFieldException =>
+          None
+      }
+
+    fieldVia("org$apache$spark$sql$SparkSession$Builder$$options")
+      .orElse(fieldVia("options"))
+      .getOrElse {
+        println("Warning: can't read SparkSession Builder options (options field not found)")
         Map.empty[String, String]
-    }
+      }
+  }
 
   private def init(): Unit = {
 

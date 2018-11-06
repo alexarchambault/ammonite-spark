@@ -19,7 +19,21 @@ lazy val `spark-stubs_20` = project
   .underModules
   .settings(
     shared,
-    libraryDependencies += Deps.sparkSql % "provided"
+    baseDirectory := {
+      val baseDir = baseDirectory.value
+
+      if (Settings.isAtLeast212.value)
+        baseDir / "target" / "dummy"
+      else
+        baseDir
+    },
+    libraryDependencies ++= {
+      if (Settings.isAtLeast212.value)
+        Nil
+      else
+        Seq(Deps.sparkSql20 % "provided")
+    },
+    publishArtifact := !Settings.isAtLeast212.value
   )
 
 lazy val `spark-stubs_24` = project
