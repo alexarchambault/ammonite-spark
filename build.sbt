@@ -15,11 +15,18 @@ inThisBuild(List(
   )
 ))
 
-lazy val `spark-stubs` = project
+lazy val `spark-stubs_20` = project
   .underModules
   .settings(
     shared,
     libraryDependencies += Deps.sparkSql % "provided"
+  )
+
+lazy val `spark-stubs_24` = project
+  .underModules
+  .settings(
+    shared,
+    libraryDependencies += Deps.sparkSql24 % "provided"
   )
 
 lazy val core = project
@@ -30,7 +37,7 @@ lazy val core = project
     generatePropertyFile("org/apache/spark/sql/ammonitesparkinternals/ammonite-spark.properties"),
     libraryDependencies ++= Seq(
       Deps.ammoniteRepl % "provided",
-      Deps.sparkSql % "provided",
+      Deps.sparkSql.value % "provided",
       Deps.jettyServer
     )
   )
@@ -71,7 +78,8 @@ lazy val `ammonite-spark` = project
   .in(file("."))
   .aggregate(
     core,
-    `spark-stubs`,
+    `spark-stubs_20`,
+    `spark-stubs_24`,
     tests
   )
   .settings(
