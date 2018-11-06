@@ -103,7 +103,7 @@ cat > "$CACHE/run.sh" << EOF
 set -e
 
 # prefetch stuff
-for d in org.apache.spark:spark-sql_2.11:2.3.1 org.apache.spark:spark-yarn_2.11:2.3.1; do
+for d in org.apache.spark:spark-sql_2.11:2.3.2 org.apache.spark:spark-yarn_2.11:2.3.2; do
   echo "Pre-fetching \$d"
   coursier fetch $(if [ "$INTERACTIVE" = 1 ]; then echo --progress; fi) "\$d" >/dev/null
 done
