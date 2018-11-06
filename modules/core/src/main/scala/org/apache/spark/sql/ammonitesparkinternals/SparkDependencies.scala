@@ -24,6 +24,7 @@ object SparkDependencies {
     )
 
   private def sparkYarnClass = "org.apache.spark.deploy.yarn.Client"
+  private def sparkExecutorClassLoaderClass = "org.apache.spark.repl.ExecutorClassLoader"
 
   def sparkHiveFound(): Boolean =
     sparkHiveClasses.exists { className =>
@@ -39,6 +40,15 @@ object SparkDependencies {
   def sparkYarnFound(): Boolean =
     try {
       Thread.currentThread().getContextClassLoader.loadClass(sparkYarnClass)
+      true
+    } catch {
+      case _: ClassNotFoundException =>
+        false
+    }
+
+  def sparkExecutorClassLoaderFound(): Boolean =
+    try {
+      Thread.currentThread().getContextClassLoader.loadClass(sparkExecutorClassLoaderClass)
       true
     } catch {
       case _: ClassNotFoundException =>

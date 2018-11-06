@@ -24,7 +24,6 @@ lazy val `spark-stubs` = project
 
 lazy val core = project
   .in(file("modules/core"))
-  .dependsOn(`spark-stubs`)
   .settings(
     shared,
     name := "ammonite-spark",

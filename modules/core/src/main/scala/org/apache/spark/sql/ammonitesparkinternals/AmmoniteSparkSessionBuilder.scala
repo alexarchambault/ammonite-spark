@@ -158,17 +158,28 @@ class AmmoniteSparkSessionBuilder
   private def bindAddress(): String =
     options0.getOrElse("spark.driver.bindAddress", host())
 
+  private def loadExtraDependencies(): Unit = {
+
+    var deps = List.empty[(String, coursier.Dependency)]
+
+    if (hiveSupport() && !SparkDependencies.sparkHiveFound())
+      deps = ("spark-hive", SparkDependencies.sparkHiveDependency) :: deps
+
+    if (!SparkDependencies.sparkExecutorClassLoaderFound())
+      deps = ("spark-stubs", SparkDependencies.stubsDependency) :: deps
+
+    if (isYarn() && !SparkDependencies.sparkYarnFound())
+      deps = ("spark-yarn", SparkDependencies.sparkYarnDependency) :: deps
+
+    if (deps.nonEmpty) {
+      println(s"Loading ${deps.map(_._1).mkString(", ")}")
+      interpApi.load.ivy(deps.map(_._2): _*)
+    }
+  }
+
   override def getOrCreate(): SparkSession = {
 
-    if (isYarn() && !SparkDependencies.sparkYarnFound()) {
-      println("Loading spark-yarn")
-      interpApi.load.ivy(SparkDependencies.sparkYarnDependency)
-    }
-
-    if (hiveSupport() && !SparkDependencies.sparkHiveFound()) {
-      println("Loading spark-hive")
-      interpApi.load.ivy(SparkDependencies.sparkHiveDependency)
-    }
+    loadExtraDependencies()
 
     val sessionJars =
       replApi
