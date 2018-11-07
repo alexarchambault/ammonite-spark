@@ -98,12 +98,32 @@ if [ ! -d "$CACHE/hadoop-conf" ]; then
   test "$TRANSIENT_DOCKER_YARN_CLUSTER" = 0 || rm -rf "$CACHE/docker-yarn-cluster"
 fi
 
+SPARK_VERSION="2.4.0"
+SCALA_VERSION="${TRAVIS_SCALA_VERSION:-"2.11.12"}"
+case "$SCALA_VERSION" in
+  2.11.*)
+    SBV="2.11"
+    ;;
+  2.12.*)
+    SBV="2.12"
+    ;;
+  *)
+    echo "Unrecognized scala version: $SCALA_VERSION"
+    exit 1
+    ;;
+esac
+
 cat > "$CACHE/run.sh" << EOF
 #!/usr/bin/env bash
 set -e
 
 # prefetch stuff
-for d in org.apache.spark:spark-sql_2.11:2.3.1 org.apache.spark:spark-yarn_2.11:2.3.1; do
+
+DEPS=()
+DEPS+="org.apache.spark:spark-sql_$SBV:$SPARK_VERSION"
+DEPS+="org.apache.spark:spark-yarn_$SBV:$SPARK_VERSION"
+
+for d in "${DEPS[@]}"; do
   echo "Pre-fetching \$d"
   coursier fetch $(if [ "$INTERACTIVE" = 1 ]; then echo --progress; fi) "\$d" >/dev/null
 done

@@ -7,6 +7,7 @@ import scala.annotation.tailrec
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.util.Properties.{versionNumberString => scalaVersion}
+import scala.util.Try
 
 object SparkDependencies {
 
@@ -24,6 +25,7 @@ object SparkDependencies {
     )
 
   private def sparkYarnClass = "org.apache.spark.deploy.yarn.Client"
+  private def sparkExecutorClassLoaderClass = "org.apache.spark.repl.ExecutorClassLoader"
 
   def sparkHiveFound(): Boolean =
     sparkHiveClasses.exists { className =>
@@ -39,6 +41,15 @@ object SparkDependencies {
   def sparkYarnFound(): Boolean =
     try {
       Thread.currentThread().getContextClassLoader.loadClass(sparkYarnClass)
+      true
+    } catch {
+      case _: ClassNotFoundException =>
+        false
+    }
+
+  def sparkExecutorClassLoaderFound(): Boolean =
+    try {
+      Thread.currentThread().getContextClassLoader.loadClass(sparkExecutorClassLoaderClass)
       true
     } catch {
       case _: ClassNotFoundException =>
@@ -79,10 +90,17 @@ object SparkDependencies {
     b.result()
   }
 
-  def stubsDependency =
+  def stubsDependency = {
+    val suffix = org.apache.spark.SPARK_VERSION.split('.').take(2) match {
+      case Array("2", n) if Try(n.toInt).toOption.exists(_ <= 3) =>
+        "20"
+      case _ =>
+        "24"
+    }
     coursier.Dependency(
-      coursier.Module("sh.almond", s"spark-stubs_$sbv"), Properties.version
+      coursier.Module("sh.almond", s"spark-stubs_${suffix}_$sbv"), Properties.version
     )
+  }
 
   def sparkYarnDependency =
     coursier.Dependency(

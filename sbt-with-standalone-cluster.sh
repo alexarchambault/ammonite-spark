@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-SPARK_VERSION="2.3.1"
+SPARK_VERSION="2.3.2"
 HOST=localhost
 
 cd "$(dirname "${BASH_SOURCE[0]}")"

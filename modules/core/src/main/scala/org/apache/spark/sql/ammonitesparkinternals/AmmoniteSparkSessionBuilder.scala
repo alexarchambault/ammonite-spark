@@ -89,16 +89,25 @@ class AmmoniteSparkSessionBuilder
    replApi: ReplAPI
  ) extends SparkSession.Builder {
 
-  private val options0: scala.collection.Map[String, String] =
-    try {
-      val f = classOf[SparkSession.Builder].getDeclaredField("org$apache$spark$sql$SparkSession$Builder$$options")
-      f.setAccessible(true)
-      f.get(this).asInstanceOf[scala.collection.mutable.HashMap[String, String]]
-    } catch {
-      case t: Throwable =>
-        println(s"Warning: can't read SparkSession Builder options, caught $t")
+  private val options0: scala.collection.Map[String, String] = {
+
+    def fieldVia(name: String): Option[scala.collection.mutable.HashMap[String, String]] =
+      try {
+        val f = classOf[SparkSession.Builder].getDeclaredField(name)
+        f.setAccessible(true)
+        Some(f.get(this).asInstanceOf[scala.collection.mutable.HashMap[String, String]])
+      } catch {
+        case _: NoSuchFieldException =>
+          None
+      }
+
+    fieldVia("org$apache$spark$sql$SparkSession$Builder$$options")
+      .orElse(fieldVia("options"))
+      .getOrElse {
+        println("Warning: can't read SparkSession Builder options (options field not found)")
         Map.empty[String, String]
-    }
+      }
+  }
 
   private def init(): Unit = {
 
@@ -158,17 +167,28 @@ class AmmoniteSparkSessionBuilder
   private def bindAddress(): String =
     options0.getOrElse("spark.driver.bindAddress", host())
 
+  private def loadExtraDependencies(): Unit = {
+
+    var deps = List.empty[(String, coursier.Dependency)]
+
+    if (hiveSupport() && !SparkDependencies.sparkHiveFound())
+      deps = ("spark-hive", SparkDependencies.sparkHiveDependency) :: deps
+
+    if (!SparkDependencies.sparkExecutorClassLoaderFound())
+      deps = ("spark-stubs", SparkDependencies.stubsDependency) :: deps
+
+    if (isYarn() && !SparkDependencies.sparkYarnFound())
+      deps = ("spark-yarn", SparkDependencies.sparkYarnDependency) :: deps
+
+    if (deps.nonEmpty) {
+      println(s"Loading ${deps.map(_._1).mkString(", ")}")
+      interpApi.load.ivy(deps.map(_._2): _*)
+    }
+  }
+
   override def getOrCreate(): SparkSession = {
 
-    if (isYarn() && !SparkDependencies.sparkYarnFound()) {
-      println("Loading spark-yarn")
-      interpApi.load.ivy(SparkDependencies.sparkYarnDependency)
-    }
-
-    if (hiveSupport() && !SparkDependencies.sparkHiveFound()) {
-      println("Loading spark-hive")
-      interpApi.load.ivy(SparkDependencies.sparkHiveDependency)
-    }
+    loadExtraDependencies()
 
     val sessionJars =
       replApi
