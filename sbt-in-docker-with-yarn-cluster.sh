@@ -118,18 +118,20 @@ cat > "$CACHE/run.sh" << EOF
 #!/usr/bin/env bash
 set -e
 
-SPARK_VERSION="$SPARK_VERSION"
+if [ "\$SPARK_HOME" = "" ]; then
+  SPARK_VERSION="$SPARK_VERSION"
 
-# prefetch stuff
+  # prefetch stuff
 
-DEPS=()
-DEPS+=("org.apache.spark:spark-sql_$SBV:\$SPARK_VERSION")
-DEPS+=("org.apache.spark:spark-yarn_$SBV:\$SPARK_VERSION")
+  DEPS=()
+  DEPS+=("org.apache.spark:spark-sql_$SBV:\$SPARK_VERSION")
+  DEPS+=("org.apache.spark:spark-yarn_$SBV:\$SPARK_VERSION")
 
-for d in "\${DEPS[@]}"; do
-  echo "Pre-fetching \$d"
-  coursier fetch $(if [ "$INTERACTIVE" = 1 ]; then echo --progress; fi) "\$d" >/dev/null
-done
+  for d in "\${DEPS[@]}"; do
+    echo "Pre-fetching \$d"
+    coursier fetch $(if [ "$INTERACTIVE" = 1 ]; then echo --progress; fi) "\$d" >/dev/null
+  done
+fi
 
 exec sbt -J-Xmx1g "\$@"
 EOF
@@ -148,6 +150,7 @@ docker run -t $(if [ "$INTERACTIVE" = 1 ]; then echo -i; fi) --rm \
   -v "$CACHE/ivy2-home:/root/.ivy2" \
   -v "$CACHE/hadoop-conf:/etc/hadoop/conf" \
   -v "$(pwd):/workspace" \
+  $(if [ ! -z ${SPARK_HOME+x} ]; then echo "" -e SPARK_HOME=/spark -v "$SPARK_HOME:/spark"; fi) \
   -e INPUT_TXT_URL \
   -w /workspace \
   openjdk:8u151-jdk \
