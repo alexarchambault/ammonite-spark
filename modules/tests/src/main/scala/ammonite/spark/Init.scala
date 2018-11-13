@@ -32,6 +32,25 @@ object Init {
             @ def sc = spark.sparkContext"""
   }
 
+  def sparkHomeInit(
+    master: String,
+    sparkVersion: String,
+    conf: Seq[(String, String)],
+    prependBuilderCalls: Seq[String] = Nil
+  ): String =
+        s"""
+            @ interp.load.cp {
+            @   import java.nio.file.{Files, Paths},  scala.collection.JavaConverters._
+            @   Files.list(Paths.get(s"$${sys.env("SPARK_HOME")}/jars"))
+            @     .iterator()
+            @     .asScala
+            @     .toVector
+            @     .filter(f => !f.getFileName.toString.startsWith("scala-compiler") && !f.getFileName.toString.startsWith("scala-reflect") && !f.getFileName.toString.startsWith("scala-library"))
+            @     .sortBy(_.getFileName.toString)
+            @     .map(ammonite.ops.Path(_))
+            @ }
+""" ++ init(master, sparkVersion, conf, loadSparkSql = false)
+
   def end = "@ spark.sparkContext.stop()"
 
   def setupLog4j(): Unit =

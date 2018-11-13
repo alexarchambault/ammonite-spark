@@ -70,6 +70,15 @@ lazy val tests = project
     )
   )
 
+lazy val `local-spark-distrib-tests` = project
+  .dependsOn(tests)
+  .underModules
+  .settings(
+    shared,
+    dontPublish,
+    testSettings
+  )
+
 lazy val `standalone-tests` = project
   .dependsOn(tests)
   .underModules

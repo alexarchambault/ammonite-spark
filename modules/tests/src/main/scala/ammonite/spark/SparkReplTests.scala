@@ -3,7 +3,11 @@ package ammonite.spark
 import ammonite.spark.fromammonite.TestRepl
 import utest._
 
-class SparkReplTests(val sparkVersion: String, val master: String, val conf: (String, String)*) extends TestSuite {
+class SparkReplTests(
+  val sparkVersion: String,
+  val master: String,
+  val conf: (String, String)*
+) extends TestSuite {
 
   // Most of the tests here were adapted from https://github.com/apache/spark/blob/ab18b02e66fd04bc8f1a4fb7b6a7f2773902a494/repl/src/test/scala/org/apache/spark/repl/SingletonReplSuite.scala
 
@@ -11,8 +15,14 @@ class SparkReplTests(val sparkVersion: String, val master: String, val conf: (St
 
   val check = new TestRepl
 
+  def sparkHomeBased: Boolean =
+    false
+
   def init =
-    Init.init(master, sparkVersion, conf)
+    if (sparkHomeBased)
+      Init.sparkHomeInit(master, sparkVersion, conf)
+    else
+      Init.init(master, sparkVersion, conf)
 
   check.session(init)
 

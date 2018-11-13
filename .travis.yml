@@ -17,6 +17,8 @@ stages:
     if: (branch = master AND type = push) OR (tag IS present)
 jobs:
   include:
+  - env: MASTER=local-distrib
+    scala: 2.11.12
   - env: MASTER=local
     scala: 2.11.12
   - env: MASTER=local
