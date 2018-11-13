@@ -88,6 +88,15 @@ lazy val `yarn-tests` = project
     testSettings
   )
 
+lazy val `yarn-spark-distrib-tests` = project
+  .dependsOn(tests)
+  .underModules
+  .settings(
+    shared,
+    dontPublish,
+    testSettings
+  )
+
 lazy val `ammonite-spark` = project
   .in(file("."))
   .aggregate(

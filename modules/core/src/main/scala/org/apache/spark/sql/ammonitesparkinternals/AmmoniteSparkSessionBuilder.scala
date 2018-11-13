@@ -12,6 +12,8 @@ import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.ui.ConsoleProgressBar
 
+import scala.collection.JavaConverters._
+
 object AmmoniteSparkSessionBuilder {
 
   private def prettyDir(dir: String): String = {
@@ -196,7 +198,7 @@ class AmmoniteSparkSessionBuilder
         .frames
         .flatMap(_.classpath)
         .filter(AmmoniteSparkSessionBuilder.shouldPassToSpark)
-        .map(_.getAbsoluteFile.toURI.toASCIIString)
+        .map(_.getAbsoluteFile.toURI)
 
     val baseJars = {
       val cp = AmmoniteSparkSessionBuilder.classpath(
@@ -212,19 +214,42 @@ class AmmoniteSparkSessionBuilder
         .map(_.toURI)
         // assuming the JDK on the YARN machines already have those
         .filter(u => !AmmoniteSparkSessionBuilder.isJdkJar(u))
-        .map(_.toASCIIString)
         .toVector
     }
 
     val jars = (baseJars ++ sessionJars).distinct
 
-//    println("Getting spark JARs")
-//    val sparkJars = SparkDependencies.sparkJars(interpApi.repositories(), Nil) // interpApi.profiles().sorted)
+    val sparkJars = sys.env.get("SPARK_HOME") match {
+      case None =>
+        println("Getting spark JARs")
+        SparkDependencies.sparkJars(interpApi.repositories(), Nil)
+      case Some(sparkHome) =>
+        // Loose attempt at using the scala JARs already loaded in Ammonite,
+        // rather than ones from the spark distribution.
+        val fromBaseCp = jars.filter { f =>
+          f.toASCIIString.contains("/scala-library-") ||
+            f.toASCIIString.contains("/scala-reflect-") ||
+            f.toASCIIString.contains("/scala-compiler-")
+        }
+        val fromSparkDistrib = Files.list(Paths.get(sparkHome).resolve("jars"))
+          .iterator()
+          .asScala
+          .toSeq
+          .filter { p =>
+            val name = p.getFileName.toString
+            !name.startsWith("scala-library-") &&
+              !name.startsWith("scala-reflect-") &&
+              !name.startsWith("scala-compiler-")
+          }
+          .map(_.toAbsolutePath.toUri)
+
+        fromBaseCp ++ fromSparkDistrib
+    }
 
     if (isYarn())
-      config("spark.yarn.jars", jars.mkString(","))
+      config("spark.yarn.jars", sparkJars.map(_.toASCIIString).mkString(","))
 
-    config("spark.jars", jars.mkString(","))
+    config("spark.jars", jars.filterNot(sparkJars.toSet).map(_.toASCIIString).mkString(","))
 
     val classServer = new AmmoniteClassServer(
       host(),

@@ -3,7 +3,7 @@ package ammonite.spark
 import ammonite.spark.fromammonite.TestRepl
 import utest._
 
-class SparkReplTests(sparkVersion: String, master: String, conf: (String, String)*) extends TestSuite {
+class SparkReplTests(val sparkVersion: String, val master: String, val conf: (String, String)*) extends TestSuite {
 
   // Most of the tests here were adapted from https://github.com/apache/spark/blob/ab18b02e66fd04bc8f1a4fb7b6a7f2773902a494/repl/src/test/scala/org/apache/spark/repl/SingletonReplSuite.scala
 
@@ -11,7 +11,10 @@ class SparkReplTests(sparkVersion: String, master: String, conf: (String, String
 
   val check = new TestRepl
 
-  check.session(Init.init(master, sparkVersion, conf))
+  def init =
+    Init.init(master, sparkVersion, conf)
+
+  check.session(init)
 
   override def utestAfterAll() =
     check.session(Init.end)

@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -eu
 
-SPARK_VERSION="2.4.0"
-
 # when the tests are running, open the YARN UI at http://localhost:8088
 
 INTERACTIVE=1
@@ -119,9 +117,9 @@ cat > "$CACHE/run.sh" << EOF
 set -e
 
 if [ "\$SPARK_HOME" = "" ]; then
-  SPARK_VERSION="$SPARK_VERSION"
-
   # prefetch stuff
+
+  export SPARK_VERSION="2.4.0"
 
   DEPS=()
   DEPS+=("org.apache.spark:spark-sql_$SBV:\$SPARK_VERSION")
@@ -151,6 +149,7 @@ docker run -t $(if [ "$INTERACTIVE" = 1 ]; then echo -i; fi) --rm \
   -v "$CACHE/hadoop-conf:/etc/hadoop/conf" \
   -v "$(pwd):/workspace" \
   $(if [ ! -z ${SPARK_HOME+x} ]; then echo "" -e SPARK_HOME=/spark -v "$SPARK_HOME:/spark"; fi) \
+  $(if [ ! -z ${SPARK_VERSION+x} ]; then echo "" -e SPARK_VERSION; fi) \
   -e INPUT_TXT_URL \
   -w /workspace \
   openjdk:8u151-jdk \
