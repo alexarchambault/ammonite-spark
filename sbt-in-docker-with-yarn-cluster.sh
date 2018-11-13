@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-set -e
+set -eu
+
+SPARK_VERSION="2.4.0"
 
 # when the tests are running, open the YARN UI at http://localhost:8088
 
@@ -98,7 +100,6 @@ if [ ! -d "$CACHE/hadoop-conf" ]; then
   test "$TRANSIENT_DOCKER_YARN_CLUSTER" = 0 || rm -rf "$CACHE/docker-yarn-cluster"
 fi
 
-SPARK_VERSION="2.4.0"
 SCALA_VERSION="${TRAVIS_SCALA_VERSION:-"2.11.12"}"
 case "$SCALA_VERSION" in
   2.11.*)
@@ -117,13 +118,15 @@ cat > "$CACHE/run.sh" << EOF
 #!/usr/bin/env bash
 set -e
 
+SPARK_VERSION="$SPARK_VERSION"
+
 # prefetch stuff
 
 DEPS=()
-DEPS+="org.apache.spark:spark-sql_$SBV:$SPARK_VERSION"
-DEPS+="org.apache.spark:spark-yarn_$SBV:$SPARK_VERSION"
+DEPS+=("org.apache.spark:spark-sql_$SBV:\$SPARK_VERSION")
+DEPS+=("org.apache.spark:spark-yarn_$SBV:\$SPARK_VERSION")
 
-for d in "${DEPS[@]}"; do
+for d in "\${DEPS[@]}"; do
   echo "Pre-fetching \$d"
   coursier fetch $(if [ "$INTERACTIVE" = 1 ]; then echo --progress; fi) "\$d" >/dev/null
 done
