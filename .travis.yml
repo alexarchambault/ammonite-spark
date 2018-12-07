@@ -17,11 +17,15 @@ stages:
     if: (branch = master AND type = push) OR (tag IS present)
 jobs:
   include:
+  - env: MASTER=local-distrib
+    scala: 2.11.12
   - env: MASTER=local
     scala: 2.11.12
   - env: MASTER=local
     scala: 2.12.7
   - env: MASTER=standalone STANDALONE_CACHE=$HOME/standalone-stuff
+    scala: 2.11.12
+  - env: MASTER=yarn-distrib YARN_CACHE=$HOME/yarn-stuff STANDALONE_CACHE=$HOME/yarn-cache
     scala: 2.11.12
   - env: MASTER=yarn YARN_CACHE=$HOME/yarn-stuff
     scala: 2.11.12

@@ -1,5 +1,7 @@
 package org.apache.spark.sql.ammonitesparkinternals
 
+import java.net.URI
+
 import coursier.util.Task
 import coursier.{Cache, Dependency, Fetch, Module, Repository, Resolution}
 
@@ -127,7 +129,7 @@ object SparkDependencies {
   def sparkJars(
     repositories: Seq[Repository],
     profiles: Seq[String]
-  ): Seq[String] = {
+  ): Seq[URI] = {
 
     val start = Resolution(
       sparkBaseDependencies().toSet,
@@ -179,7 +181,7 @@ object SparkDependencies {
 
     localArtifactsRes
       .flatMap(_._2.right.toOption)
-      .map(_.getAbsoluteFile.toURI.toASCIIString)
+      .map(_.getAbsoluteFile.toURI)
   }
 
 }

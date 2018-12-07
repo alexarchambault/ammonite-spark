@@ -10,10 +10,18 @@ object Init {
     master: String,
     sparkVersion: String,
     conf: Seq[(String, String)],
-    prependBuilderCalls: Seq[String] = Nil
-  ): String =
+    prependBuilderCalls: Seq[String] = Nil,
+    loadSparkSql: Boolean = true
+  ): String = {
+
+    val optionalSparkSqlImport =
+      if (loadSparkSql)
+        Some(s"import $$ivy.`org.apache.spark::spark-sql:$sparkVersion`")
+      else
+        None
+
         s"""
-            @ import $$ivy.`org.apache.spark::spark-sql:$sparkVersion`; import $$ivy.`sh.almond::ammonite-spark:$version`
+            @ ${optionalSparkSqlImport.fold("")(_ + "; ")}import $$ivy.`sh.almond::ammonite-spark:$version`
 
             @ import org.apache.spark.sql._
 
@@ -22,6 +30,26 @@ object Init {
             @ val spark = AmmoniteSparkSession.builder()${prependBuilderCalls.mkString}.appName("test-ammonite-spark").master("$master")${conf.map(t => s".config($q${t._1}$q, $q${t._2}$q)").mkString}.getOrCreate()
 
             @ def sc = spark.sparkContext"""
+  }
+
+  def sparkHomeInit(
+    master: String,
+    sparkVersion: String,
+    conf: Seq[(String, String)],
+    prependBuilderCalls: Seq[String] = Nil
+  ): String =
+        s"""
+            @ interp.load.cp {
+            @   import java.nio.file.{Files, Paths},  scala.collection.JavaConverters._
+            @   Files.list(Paths.get(s"$${sys.env("SPARK_HOME")}/jars"))
+            @     .iterator()
+            @     .asScala
+            @     .toVector
+            @     .filter(f => !f.getFileName.toString.startsWith("scala-compiler") && !f.getFileName.toString.startsWith("scala-reflect") && !f.getFileName.toString.startsWith("scala-library"))
+            @     .sortBy(_.getFileName.toString)
+            @     .map(ammonite.ops.Path(_))
+            @ }
+""" ++ init(master, sparkVersion, conf, loadSparkSql = false)
 
   def end = "@ spark.sparkContext.stop()"
 

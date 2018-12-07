@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e
+set -eu
 
 # when the tests are running, open the YARN UI at http://localhost:8088
 
@@ -98,7 +98,6 @@ if [ ! -d "$CACHE/hadoop-conf" ]; then
   test "$TRANSIENT_DOCKER_YARN_CLUSTER" = 0 || rm -rf "$CACHE/docker-yarn-cluster"
 fi
 
-SPARK_VERSION="2.4.0"
 SCALA_VERSION="${TRAVIS_SCALA_VERSION:-"2.11.12"}"
 case "$SCALA_VERSION" in
   2.11.*)
@@ -117,16 +116,20 @@ cat > "$CACHE/run.sh" << EOF
 #!/usr/bin/env bash
 set -e
 
-# prefetch stuff
+if [ "\$SPARK_HOME" = "" ]; then
+  # prefetch stuff
 
-DEPS=()
-DEPS+="org.apache.spark:spark-sql_$SBV:$SPARK_VERSION"
-DEPS+="org.apache.spark:spark-yarn_$SBV:$SPARK_VERSION"
+  export SPARK_VERSION="2.4.0"
 
-for d in "${DEPS[@]}"; do
-  echo "Pre-fetching \$d"
-  coursier fetch $(if [ "$INTERACTIVE" = 1 ]; then echo --progress; fi) "\$d" >/dev/null
-done
+  DEPS=()
+  DEPS+=("org.apache.spark:spark-sql_$SBV:\$SPARK_VERSION")
+  DEPS+=("org.apache.spark:spark-yarn_$SBV:\$SPARK_VERSION")
+
+  for d in "\${DEPS[@]}"; do
+    echo "Pre-fetching \$d"
+    coursier fetch $(if [ "$INTERACTIVE" = 1 ]; then echo --progress; fi) "\$d" >/dev/null
+  done
+fi
 
 exec sbt -J-Xmx1g "\$@"
 EOF
@@ -145,6 +148,8 @@ docker run -t $(if [ "$INTERACTIVE" = 1 ]; then echo -i; fi) --rm \
   -v "$CACHE/ivy2-home:/root/.ivy2" \
   -v "$CACHE/hadoop-conf:/etc/hadoop/conf" \
   -v "$(pwd):/workspace" \
+  $(if [ ! -z ${SPARK_HOME+x} ]; then echo "" -e SPARK_HOME=/spark -v "$SPARK_HOME:/spark"; fi) \
+  $(if [ ! -z ${SPARK_VERSION+x} ]; then echo "" -e SPARK_VERSION; fi) \
   -e INPUT_TXT_URL \
   -w /workspace \
   openjdk:8u151-jdk \
