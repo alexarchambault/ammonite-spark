@@ -16,7 +16,7 @@ object Settings {
   }
 
   private val scala211 = "2.11.12"
-  private val scala212 = "2.12.7"
+  private val scala212 = "2.12.8"
 
   lazy val isAtLeast212 = setting {
     CrossVersion.partialVersion(scalaVersion.value) match {
