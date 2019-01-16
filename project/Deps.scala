@@ -5,7 +5,7 @@ import sbt.Keys._
 
 object Deps {
 
-  def ammoniteRepl = ("com.lihaoyi" % "ammonite-repl" % "1.6.0").cross(CrossVersion.full)
+  def ammoniteRepl = ("com.lihaoyi" % "ammonite-repl" % "1.6.2").cross(CrossVersion.full)
   def jettyServer = "org.eclipse.jetty" % "jetty-server" % "8.1.22.v20160922"
   def utest = "com.lihaoyi" %% "utest" % "0.6.6"
 
