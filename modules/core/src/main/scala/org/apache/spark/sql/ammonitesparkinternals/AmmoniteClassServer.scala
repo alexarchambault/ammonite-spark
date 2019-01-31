@@ -29,6 +29,8 @@ final class AmmoniteClassServer(host: String, bindTo: String, port: Int, frames:
         frames
           .toStream
           .flatMap(_.classpath)
+          .filter(_.getProtocol == "file")
+          .map(url => new File(url.toURI))
           .filter(f => f.isDirectory)
           .map(path.split('/').foldLeft(_)(new File(_, _)))
           .collectFirst { case f if f.exists() => Files.readAllBytes(f.toPath) }

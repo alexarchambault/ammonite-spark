@@ -1,7 +1,7 @@
 package org.apache.spark.sql.ammonitesparkinternals
 
 import java.io.File
-import java.net.{InetAddress, URI}
+import java.net.{InetAddress, URI, URL}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
@@ -39,10 +39,10 @@ object AmmoniteSparkSessionBuilder {
     )
   }
 
-  def shouldPassToSpark(classpathEntry: File): Boolean =
-    classpathEntry.isFile &&
-      classpathEntry.getName.endsWith(".jar") &&
-      !classpathEntry.getName.endsWith("-sources.jar")
+  def shouldPassToSpark(classpathEntry: URL): Boolean =
+    classpathEntry.getProtocol == "file" &&
+      classpathEntry.getPath.endsWith(".jar") &&
+      !classpathEntry.getPath.endsWith("-sources.jar")
 
   def classpath(cl: ClassLoader): Stream[java.net.URL] = {
     if (cl == null)
@@ -198,7 +198,7 @@ class AmmoniteSparkSessionBuilder
         .frames
         .flatMap(_.classpath)
         .filter(AmmoniteSparkSessionBuilder.shouldPassToSpark)
-        .map(_.getAbsoluteFile.toURI)
+        .map(_.toURI)
 
     val baseJars = {
       val cp = AmmoniteSparkSessionBuilder.classpath(
