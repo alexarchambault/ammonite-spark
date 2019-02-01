@@ -1,7 +1,7 @@
 package org.apache.spark.sql.ammonitesparkinternals
 
 import java.io.File
-import java.net.{InetAddress, URI}
+import java.net.{InetAddress, URI, URL}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
@@ -39,10 +39,19 @@ object AmmoniteSparkSessionBuilder {
     )
   }
 
-  def shouldPassToSpark(classpathEntry: File): Boolean =
-    classpathEntry.isFile &&
-      classpathEntry.getName.endsWith(".jar") &&
-      !classpathEntry.getName.endsWith("-sources.jar")
+  def shouldPassToSpark(classpathEntry: URL): Boolean = {
+    val isJarFile = classpathEntry.getProtocol == "file" &&
+      classpathEntry.getPath.endsWith(".jar") &&
+      !classpathEntry.getPath.endsWith("-sources.jar")
+    // Should be useful in almond, if one generates a launcher for it with the --standalone option (to embed the
+    // dependencies in the launcher).
+    // Since https://github.com/coursier/coursier/pull/1024 in coursier, these embedded dependencies should have URLs
+    // like jar:file:/…, with possible multiple '!/' in them.
+    val isJarInJar = classpathEntry.getProtocol == "jar" &&
+      classpathEntry.getFile.endsWith(".jar!/") &&
+      !classpathEntry.getPath.endsWith("-sources.jar!/")
+    isJarFile || isJarInJar
+  }
 
   def classpath(cl: ClassLoader): Stream[java.net.URL] = {
     if (cl == null)
@@ -198,7 +207,7 @@ class AmmoniteSparkSessionBuilder
         .frames
         .flatMap(_.classpath)
         .filter(AmmoniteSparkSessionBuilder.shouldPassToSpark)
-        .map(_.getAbsoluteFile.toURI)
+        .map(_.toURI)
 
     val baseJars = {
       val cp = AmmoniteSparkSessionBuilder.classpath(
