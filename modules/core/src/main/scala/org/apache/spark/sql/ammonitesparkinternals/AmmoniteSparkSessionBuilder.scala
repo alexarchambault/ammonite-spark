@@ -178,8 +178,10 @@ class AmmoniteSparkSessionBuilder
   private def bindAddress(): String =
     options0.getOrElse("spark.driver.bindAddress", host())
 
-  private def loadExtraDependencies(): Unit = {
+  private def shouldAutoLoadDependencies(): Boolean =
+    options0.getOrElse("ammonite.spark.dependencies.autoload", "true").toBoolean
 
+  private def loadExtraDependencies(): Unit = {
     var deps = List.empty[(String, coursier.Dependency)]
 
     if (hiveSupport() && !SparkDependencies.sparkHiveFound())
@@ -198,8 +200,10 @@ class AmmoniteSparkSessionBuilder
   }
 
   override def getOrCreate(): SparkSession = {
-
-    loadExtraDependencies()
+    val autoloadDependencies = shouldAutoLoadDependencies()
+    if (autoloadDependencies) {
+      loadExtraDependencies()
+    }
 
     val sessionJars =
       replApi
@@ -230,8 +234,13 @@ class AmmoniteSparkSessionBuilder
 
     val sparkJars = sys.env.get("SPARK_HOME") match {
       case None =>
-        println("Getting spark JARs")
-        SparkDependencies.sparkJars(interpApi.repositories(), Nil)
+        if (autoloadDependencies) {
+          println("Getting Spark JARs")
+          SparkDependencies.sparkJars(interpApi.repositories(), Nil)
+        } else {
+          println("Dependency autoloading is disabled. Skipping Spark JARs")
+          Seq()
+        }
       case Some(sparkHome) =>
         // Loose attempt at using the scala JARs already loaded in Ammonite,
         // rather than ones from the spark distribution.
