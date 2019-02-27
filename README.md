@@ -22,20 +22,20 @@ Run [spark](https://spark.apache.org/) calculations from [Ammonite](http://ammon
 
 ## Quick start
 
-Start Ammonite >= [`1.1.2-21-df41270`](https://github.com/lihaoyi/Ammonite/releases/download/1.1.2/2.11-1.1.2-21-df41270), with the `--class-based` option. Either follow [the instructions](http://ammonite.io/#Ammonite-REPL) on its website, then do
+Start Ammonite >= [`1.6.3`](https://github.com/lihaoyi/Ammonite/releases/download/1.6.3/2.11-1.6.3), with the `--class-based` option. Either follow [the instructions](http://ammonite.io/#Ammonite-REPL) on its website, then do
 ```
 $ amm --class-based
 ```
 or use [coursier](https://github.com/coursier/coursier),
 ```
-$ coursier launch com.lihaoyi:ammonite_2.11.12:1.1.2-21-df41270 -M ammonite.Main -- --class-based
+$ coursier launch com.lihaoyi:ammonite_2.11.12:1.6.3 -M ammonite.Main -- --class-based
 ```
-In both cases, ensure you are using scala 2.11.x.
+In both cases, if you are using Spark 2.0 - 2.3, ensure you are using scala 2.11.x.
 
 At the Ammonite prompt, load the Spark 2.x version of your choice, along with ammonite-spark,
 ```scala
-@ import $ivy.`org.apache.spark::spark-sql:2.3.1`
-@ import $ivy.`sh.almond::ammonite-spark:0.1.1`
+@ import $ivy.`org.apache.spark::spark-sql:2.4.0`
+@ import $ivy.`sh.almond::ammonite-spark:0.3.0`
 ```
 
 Then create a `SparkSession` using the builder provided by *ammonite-spark*
