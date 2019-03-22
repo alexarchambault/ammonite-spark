@@ -3,7 +3,8 @@ package org.apache.spark.sql.ammonitesparkinternals
 import java.net.URI
 
 import coursier.util.Task
-import coursier.{Cache, Dependency, Fetch, Module, Repository, Resolution}
+import coursier._
+import coursier.params.ResolutionParams
 
 import scala.annotation.tailrec
 import scala.collection.mutable
@@ -100,88 +101,49 @@ object SparkDependencies {
         "24"
     }
     coursier.Dependency(
-      coursier.Module("sh.almond", s"spark-stubs_${suffix}_$sbv"), Properties.version
+      coursier.Module(org"sh.almond", ModuleName(s"spark-stubs_${suffix}_$sbv")), Properties.version
     )
   }
 
   def sparkYarnDependency =
     coursier.Dependency(
-      coursier.Module("org.apache.spark", s"spark-yarn_$sbv"), org.apache.spark.SPARK_VERSION
+      coursier.Module(org"org.apache.spark", ModuleName(s"spark-yarn_$sbv")), org.apache.spark.SPARK_VERSION
     )
 
   def sparkHiveDependency =
     coursier.Dependency(
-      coursier.Module("org.apache.spark", s"spark-hive_$sbv"), org.apache.spark.SPARK_VERSION
+      coursier.Module(org"org.apache.spark", ModuleName(s"spark-hive_$sbv")), org.apache.spark.SPARK_VERSION
     )
 
   private def sparkBaseDependencies() =
     Seq(
-      Dependency(Module("org.scala-lang", "scala-library"), scalaVersion),
-      Dependency(Module("org.scala-lang", "scala-reflect"), scalaVersion),
-      Dependency(Module("org.scala-lang", "scala-compiler"), scalaVersion),
+      Dependency(Module(org"org.scala-lang", name"scala-library"), scalaVersion),
+      Dependency(Module(org"org.scala-lang", name"scala-reflect"), scalaVersion),
+      Dependency(Module(org"org.scala-lang", name"scala-compiler"), scalaVersion),
       stubsDependency // for ExecutorClassLoader
     ) ++
       sparkModules().map { m =>
-        Dependency(Module("org.apache.spark", s"spark-${m}_$sbv"), org.apache.spark.SPARK_VERSION)
+        Dependency(Module(org"org.apache.spark", ModuleName(s"spark-${m}_$sbv")), org.apache.spark.SPARK_VERSION)
       }
 
 
   def sparkJars(
     repositories: Seq[Repository],
     profiles: Seq[String]
-  ): Seq[URI] = {
-
-    val start = Resolution(
-      sparkBaseDependencies().toSet,
-      forceVersions = Map(
-        Module("org.scala-lang", "scala-library") -> scalaVersion,
-        Module("org.scala-lang", "scala-reflect") -> scalaVersion,
-        Module("org.scala-lang", "scala-compiler") -> scalaVersion
-      ),
-      userActivations =
-        if (profiles.isEmpty) None
-        else Some(profiles.iterator.map(p => if (p.startsWith("!")) p.drop(1) -> false else p -> true).toMap)
-    )
-
-    val fetch = Fetch.from(repositories, Cache.fetch[Task]())
-
-    val resolution = start.process.run(fetch).unsafeRun()(ExecutionContext.global)
-
-    val errors = resolution.errors
-
-    if (errors.nonEmpty) {
-      for (((mod, ver), msg) <- errors) {
-        Console.err.println(s"Error downloading $mod:$ver")
-        for (m <- msg)
-          Console.err.println("  " + m)
-      }
-      sys.error("Error while resolving spark dependencies")
-    }
-
-    val localArtifactsTasks = Task.gather.gather(
-      resolution
-        .dependencyArtifacts(withOptional = true)
-        .map(_._2)
-        .filter(a => a.`type` == "jar" || a.`type` == "bundle")
-        .map(a => Cache.file[Task](a).run.map(e => (a.isOptional, e.left.map((a, _)))))
-    )
-
-    val localArtifactsRes = localArtifactsTasks.unsafeRun()(ExecutionContext.global)
-
-    val fileErrors = localArtifactsRes.collect {
-      case (false, Left(e)) => e
-      case (true, Left(e @ (_, err))) if !err.notFound => e
-    }
-
-    if (fileErrors.nonEmpty) {
-      for ((a, err) <- fileErrors)
-        Console.err.println(s"Error downloading ${a.url}: ${err.describe}")
-      sys.error("Error while downloading dependencies")
-    }
-
-    localArtifactsRes
-      .flatMap(_._2.right.toOption)
+  ): Seq[URI] =
+    Fetch()
+      .addDependencies(sparkBaseDependencies(): _*)
+      .withRepositories(repositories)
+      .withResolutionParams(
+        ResolutionParams()
+          .addForceVersion(
+            mod"org.scala-lang:scala-library" -> scalaVersion,
+            mod"org.scala-lang:scala-reflect" -> scalaVersion,
+            mod"org.scala-lang:scala-compiler" -> scalaVersion
+          )
+          .withProfiles(profiles.toSet)
+      )
+      .run()
       .map(_.getAbsoluteFile.toURI)
-  }
 
 }
