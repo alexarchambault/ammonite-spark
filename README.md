@@ -16,7 +16,8 @@ Run [spark](https://spark.apache.org/) calculations from [Ammonite](http://ammon
 3. [Using with standalone cluster](#using-with-standalone-cluster)
 4. [Using with YARN cluster](#using-with-yarn-cluster)
 5. [Troubleshooting](#troubleshooting)
-6. [Missing](#missing)
+6. [Compatibility](#compatibility)
+7. [Missing](#missing)
 
 
 
@@ -119,6 +120,20 @@ ds: Dataset[Foo] = [id: string, value: int]
 ```
 
 (This should likely be added automatically in the future.)
+
+## Compatibility
+
+ammonite-spark relies on the API of Ammonite, which undergoes
+non backward compatible changes from time to time. The following table lists
+which versions of Ammonite ammonite-spark is built against - so is compatible
+with for sure.
+
+| ammonite-spark   | Ammonite |
+|------------------|----------|
+| `0.1.2`, `0.1.3` | `1.3.2`  |
+| `0.2.0`          | `1.5.0`  |
+| `0.3.0`          | `1.6.3`  |
+| `0.4.0`          | `1.6.5`  |
 
 ## Missing
 
