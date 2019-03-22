@@ -1,5 +1,5 @@
 language: scala
-jdk: oraclejdk8
+jdk: openjdk8
 script: ./.travis.sh
 sudo: required
 cache:
@@ -9,8 +9,8 @@ cache:
   - $HOME/.sbt
   - $HOME/standalone-stuff
   - $HOME/yarn-stuff
-before_install:
-  - git fetch --tags
+git:
+  depth: false
 stages:
   - name: test
   - name: release
