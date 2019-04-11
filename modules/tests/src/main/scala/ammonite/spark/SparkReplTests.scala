@@ -331,7 +331,7 @@ class SparkReplTests(
             list: List[(Int, Foo)] = List((1, Foo(1)), (1, Foo(2)))
 
             @ val res = sc.parallelize(list).groupByKey().collect()
-            res: Array[(Int, Iterable[Foo])] = Array((1, CompactBuffer(Foo(1), Foo(2))))
+            res: Array[(Int, Iterable[Foo])] = Array((1, List(Foo(1), Foo(2))))
         """
       )
     }

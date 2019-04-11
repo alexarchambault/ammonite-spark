@@ -1,6 +1,6 @@
 package ammonite.spark.fromammonite
 
-import ammonite.interp.{Interpreter, Preprocessor}
+import ammonite.interp.{CodeClassWrapper, CodeWrapper, Interpreter}
 import ammonite.main.Defaults
 import ammonite.ops.{Path, read}
 import ammonite.repl._
@@ -18,7 +18,7 @@ import scala.collection.mutable
 class TestRepl {
   var allOutput = ""
   def predef: (String, Option[ammonite.ops.Path]) = ("", None)
-  def codeWrapper: Preprocessor.CodeWrapper = Preprocessor.CodeClassWrapper
+  def codeWrapper: CodeWrapper = CodeClassWrapper
 
   val tempDir = ammonite.ops.Path(
     java.nio.file.Files.createTempDirectory("ammonite-tester")
