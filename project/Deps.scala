@@ -6,7 +6,7 @@ import sbt.Keys._
 object Deps {
 
   def ammoniteRepl = ("com.lihaoyi" % "ammonite-repl" % "1.6.7").cross(CrossVersion.full)
-  def jettyServer = "org.eclipse.jetty" % "jetty-server" % "9.4.18.v20190429"
+  def jettyServer = "org.eclipse.jetty" % "jetty-server" % "9.4.19.v20190610"
   def utest = "com.lihaoyi" %% "utest" % "0.6.7"
 
   def sparkSql20 = "org.apache.spark" %% "spark-sql" % "2.0.2" // no need to bump that version much, to ensure we don't rely on too new stuff
