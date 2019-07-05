@@ -5,7 +5,28 @@ import sbt.Keys._
 
 object Deps {
 
-  def ammoniteRepl = ("com.lihaoyi" % "ammonite-repl" % "1.6.7").cross(CrossVersion.full)
+  private val ammoniteVersion = setting {
+    val sv = scalaVersion.value
+    if (sv.startsWith("2.11."))
+      "1.6.7"
+    else
+      "1.6.9-8-2a27ffe"
+  }
+
+  def ammoniteReplApi = setting {
+    val sv = scalaVersion.value
+    val mod =
+      if (sv.startsWith("2.11."))
+        "com.lihaoyi" % "ammonite-repl"
+      else
+        "com.lihaoyi" % "ammonite-repl-api"
+    val ver = ammoniteVersion.value
+    (mod % ver).cross(CrossVersion.full)
+  }
+  def ammoniteRepl = setting {
+    val ver = ammoniteVersion.value
+    ("com.lihaoyi" % "ammonite-repl" % ver).cross(CrossVersion.full)
+  }
   def jettyServer = "org.eclipse.jetty" % "jetty-server" % "9.4.19.v20190610"
   def utest = "com.lihaoyi" %% "utest" % "0.6.7"
 

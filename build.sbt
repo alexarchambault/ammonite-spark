@@ -50,7 +50,7 @@ lazy val core = project
     name := "ammonite-spark",
     generatePropertyFile("org/apache/spark/sql/ammonitesparkinternals/ammonite-spark.properties"),
     libraryDependencies ++= Seq(
-      Deps.ammoniteRepl % "provided",
+      Deps.ammoniteReplApi.value % "provided",
       Deps.sparkSql.value % "provided",
       Deps.jettyServer
     )
@@ -65,7 +65,7 @@ lazy val tests = project
     generateDependenciesFile,
     testSettings,
     libraryDependencies ++= Seq(
-      Deps.ammoniteRepl,
+      Deps.ammoniteRepl.value,
       Deps.utest
     )
   )

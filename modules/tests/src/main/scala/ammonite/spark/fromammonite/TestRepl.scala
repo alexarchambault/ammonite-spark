@@ -4,7 +4,8 @@ import ammonite.interp.{CodeClassWrapper, CodeWrapper, Interpreter}
 import ammonite.main.Defaults
 import ammonite.ops.{Path, read}
 import ammonite.repl._
-import ammonite.runtime.{Frame, History, Storage}
+import ammonite.repl.api.{FrontEnd, History, ReplLoad}
+import ammonite.runtime.{Frame, ImportHook, Storage}
 import ammonite.util.Util.normalizeNewlines
 import ammonite.util._
 import utest._
@@ -88,15 +89,15 @@ class TestRepl {
     }
   ))
 
-  val frames: Ref[List[Frame]] = Ref(List(Frame.createInitial()))
+  private val initialLoader = Thread.currentThread().getContextClassLoader
+  val frames: Ref[List[Frame]] = Ref(List(Frame.createInitial(initialLoader)))
   val sess0 = new SessionApiImpl(frames)
 
   var currentLine = 0
   lazy val interp: Interpreter = try {
     new Interpreter(
-      printer0,
+      printer = printer0,
       storage = storage,
-      wd = ammonite.ops.pwd,
       basePredefs = Seq(
         PredefInfo(
           Name("defaultPredef"),
@@ -108,7 +109,9 @@ class TestRepl {
       ),
       customPredefs = Seq(),
       extraBridges = extraBridges,
+      wd = ammonite.ops.pwd,
       colors = Ref(Colors.BlackWhite),
+      verboseOutput = true,
       getFrame = () => frames().head,
       createFrame = () => { val f = sess0.childFrame(frames().head); frames() = f :: frames(); f },
       replCodeWrapper = codeWrapper,

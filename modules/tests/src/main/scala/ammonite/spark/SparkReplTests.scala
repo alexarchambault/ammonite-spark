@@ -330,8 +330,8 @@ class SparkReplTests(
             @ val list = List((1, Foo(1)), (1, Foo(2)))
             list: List[(Int, Foo)] = List((1, Foo(1)), (1, Foo(2)))
 
-            @ val res = sc.parallelize(list).groupByKey().collect()
-            res: Array[(Int, Iterable[Foo])] = Array((1, List(Foo(1), Foo(2))))
+            @ val res = sc.parallelize(list).groupByKey().collect().map { case (k, v) => k -> v.toList }
+            res: Array[(Int, List[Foo])] = Array((1, List(Foo(1), Foo(2))))
         """
       )
     }

@@ -5,11 +5,13 @@ import java.net.{InetSocketAddress, ServerSocket, URI}
 import java.nio.file.Files
 
 import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
-import ammonite.runtime.Frame
+import ammonite.repl.api.Frame
 import org.eclipse.jetty.server.{Request, Server}
 import org.eclipse.jetty.server.handler.AbstractHandler
 
 final class AmmoniteClassServer(host: String, bindTo: String, port: Int, frames: => List[Frame]) {
+
+  import Compatibility._
 
   private val socketAddress = InetSocketAddress.createUnresolved(bindTo, port)
 
@@ -22,7 +24,7 @@ final class AmmoniteClassServer(host: String, bindTo: String, port: Int, frames:
       val fromClassMaps =
         frames
           .toStream
-          .flatMap(_.classloader.newFileDict.get(item))
+          .flatMap(_.classloader.inMemoryClasses.get(item))
           .headOption
 
       def fromDirs =
