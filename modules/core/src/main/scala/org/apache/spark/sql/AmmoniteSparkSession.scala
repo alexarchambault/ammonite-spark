@@ -1,7 +1,7 @@
 package org.apache.spark.sql
 
-import ammonite.repl.ReplAPI
-import ammonite.interp.InterpAPI
+import ammonite.repl.api.ReplAPI
+import ammonite.interp.api.InterpAPI
 import org.apache.spark.sql.ammonitesparkinternals.AmmoniteSparkSessionBuilder
 
 object AmmoniteSparkSession {
