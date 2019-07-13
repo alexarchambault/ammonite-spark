@@ -27,7 +27,7 @@ object Deps {
     val ver = ammoniteVersion.value
     ("com.lihaoyi" % "ammonite-repl" % ver).cross(CrossVersion.full)
   }
-  def jettyServer = "org.eclipse.jetty" % "jetty-server" % "9.4.19.v20190610"
+  def jettyServer = "org.eclipse.jetty" % "jetty-server" % "10.0.0-alpha0"
   def utest = "com.lihaoyi" %% "utest" % "0.6.7"
 
   def sparkSql20 = "org.apache.spark" %% "spark-sql" % "2.0.2" // no need to bump that version much, to ensure we don't rely on too new stuff
