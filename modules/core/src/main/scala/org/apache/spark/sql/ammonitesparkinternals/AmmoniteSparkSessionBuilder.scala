@@ -7,6 +7,7 @@ import java.nio.file.{Files, Paths}
 
 import ammonite.repl.api.ReplAPI
 import ammonite.interp.api.InterpAPI
+import coursierapi.Dependency
 import org.apache.spark.SparkContext
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 import org.apache.spark.sql.SparkSession
@@ -180,7 +181,7 @@ class AmmoniteSparkSessionBuilder
 
   private def loadExtraDependencies(): Unit = {
 
-    var deps = List.empty[(String, coursier.Dependency)]
+    var deps = List.empty[(String, Dependency)]
 
     if (hiveSupport() && !SparkDependencies.sparkHiveFound())
       deps = ("spark-hive", SparkDependencies.sparkHiveDependency) :: deps

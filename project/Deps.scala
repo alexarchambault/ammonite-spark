@@ -10,7 +10,7 @@ object Deps {
     if (sv.startsWith("2.11."))
       "1.6.7"
     else
-      "1.6.9-8-2a27ffe"
+      "1.6.9-15-6720d42"
   }
 
   def ammoniteReplApi = setting {

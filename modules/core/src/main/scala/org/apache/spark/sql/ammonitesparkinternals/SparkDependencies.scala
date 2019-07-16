@@ -2,13 +2,11 @@ package org.apache.spark.sql.ammonitesparkinternals
 
 import java.net.URI
 
-import coursier.util.Task
-import coursier._
-import coursier.params.ResolutionParams
+import coursierapi.{Dependency, Fetch, Module, Repository, ResolutionParams}
 
 import scala.annotation.tailrec
+import scala.collection.JavaConverters._
 import scala.collection.mutable
-import scala.concurrent.ExecutionContext
 import scala.util.Properties.{versionNumberString => scalaVersion}
 import scala.util.Try
 
@@ -100,30 +98,30 @@ object SparkDependencies {
       case _ =>
         "24"
     }
-    coursier.Dependency(
-      coursier.Module(org"sh.almond", ModuleName(s"spark-stubs_${suffix}_$sbv")), Properties.version
+    Dependency.of(
+      "sh.almond", s"spark-stubs_${suffix}_$sbv", Properties.version
     )
   }
 
   def sparkYarnDependency =
-    coursier.Dependency(
-      coursier.Module(org"org.apache.spark", ModuleName(s"spark-yarn_$sbv")), org.apache.spark.SPARK_VERSION
+    Dependency.of(
+      "org.apache.spark", s"spark-yarn_$sbv", org.apache.spark.SPARK_VERSION
     )
 
   def sparkHiveDependency =
-    coursier.Dependency(
-      coursier.Module(org"org.apache.spark", ModuleName(s"spark-hive_$sbv")), org.apache.spark.SPARK_VERSION
+    Dependency.of(
+      "org.apache.spark", s"spark-hive_$sbv", org.apache.spark.SPARK_VERSION
     )
 
   private def sparkBaseDependencies() =
     Seq(
-      Dependency(Module(org"org.scala-lang", name"scala-library"), scalaVersion),
-      Dependency(Module(org"org.scala-lang", name"scala-reflect"), scalaVersion),
-      Dependency(Module(org"org.scala-lang", name"scala-compiler"), scalaVersion),
+      Dependency.of("org.scala-lang", "scala-library", scalaVersion),
+      Dependency.of("org.scala-lang", "scala-reflect", scalaVersion),
+      Dependency.of("org.scala-lang", "scala-compiler", scalaVersion),
       stubsDependency // for ExecutorClassLoader
     ) ++
       sparkModules().map { m =>
-        Dependency(Module(org"org.apache.spark", ModuleName(s"spark-${m}_$sbv")), org.apache.spark.SPARK_VERSION)
+        Dependency.of("org.apache.spark", s"spark-${m}_$sbv", org.apache.spark.SPARK_VERSION)
       }
 
 
@@ -131,19 +129,19 @@ object SparkDependencies {
     repositories: Seq[Repository],
     profiles: Seq[String]
   ): Seq[URI] =
-    Fetch()
+    Fetch.create()
       .addDependencies(sparkBaseDependencies(): _*)
-      .withRepositories(repositories)
+      .withRepositories(repositories: _*)
       .withResolutionParams(
-        ResolutionParams()
-          .addForceVersion(
-            mod"org.scala-lang:scala-library" -> scalaVersion,
-            mod"org.scala-lang:scala-reflect" -> scalaVersion,
-            mod"org.scala-lang:scala-compiler" -> scalaVersion
-          )
-          .withProfiles(profiles.toSet)
+        ResolutionParams.create()
+          .forceVersion(Module.of("org.scala-lang", "scala-library"), scalaVersion)
+          .forceVersion(Module.of("org.scala-lang", "scala-reflect"), scalaVersion)
+          .forceVersion(Module.of("org.scala-lang", "scala-compiler"), scalaVersion)
+          .withProfiles(profiles.toSet.asJava)
       )
-      .run()
+      .fetch()
+      .asScala
+      .toVector
       .map(_.getAbsoluteFile.toURI)
 
 }
