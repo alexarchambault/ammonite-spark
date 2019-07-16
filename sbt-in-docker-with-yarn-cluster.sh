@@ -36,7 +36,7 @@ if [ ! -x "$CACHE/coursier" ]; then
 fi
 
 if [ ! -x "$CACHE/sbt" ]; then
-  curl -Lo "$CACHE/sbt" https://github.com/paulp/sbt-extras/raw/65a871dc720c18614a0d8d0db6b52d25ed98dffb/sbt
+  curl -Lo "$CACHE/sbt" https://raw.githubusercontent.com/coursier/sbt-extras/e20d91edd7c2e9f4a17629dfae7d7d6bf9ba72a0/sbt
   chmod +x "$CACHE/sbt"
 fi
 

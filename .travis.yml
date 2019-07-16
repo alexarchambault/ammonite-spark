@@ -1,12 +1,16 @@
-language: scala
+language: java
 jdk: openjdk8
-scala: 2.12.8
+before_install:
+  - mkdir .bin
+  - curl -Lo .bin/sbt https://raw.githubusercontent.com/coursier/sbt-extras/e20d91edd7c2e9f4a17629dfae7d7d6bf9ba72a0/sbt
+  - chmod +x .bin/sbt
+  - export PATH="$(pwd)/.bin:$PATH"
+  - export TRAVIS_SCALA_VERSION=2.12.8
 script: ./.travis.sh
 sudo: required
 cache:
   directories:
   - $HOME/.cache
-  - $HOME/.ivy2/cache
   - $HOME/.sbt
   - $HOME/standalone-stuff
   - $HOME/yarn-stuff
