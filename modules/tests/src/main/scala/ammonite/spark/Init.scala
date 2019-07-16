@@ -45,7 +45,7 @@ object Init {
             @     .iterator()
             @     .asScala
             @     .toVector
-            @     .filter(f => !f.getFileName.toString.startsWith("scala-compiler") && !f.getFileName.toString.startsWith("scala-reflect") && !f.getFileName.toString.startsWith("scala-library"))
+            @     .filter(f => !f.getFileName.toString.startsWith("scala-compiler") && !f.getFileName.toString.startsWith("scala-reflect") && !f.getFileName.toString.startsWith("scala-library") && !f.getFileName.toString.startsWith("spark-repl_"))
             @     .sortBy(_.getFileName.toString)
             @     .map(ammonite.ops.Path(_))
             @ }

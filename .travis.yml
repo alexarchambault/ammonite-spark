@@ -1,5 +1,6 @@
 language: scala
 jdk: openjdk8
+scala: 2.12.8
 script: ./.travis.sh
 sudo: required
 cache:
@@ -18,19 +19,10 @@ stages:
 jobs:
   include:
   - env: MASTER=local-distrib
-    scala: 2.11.12
   - env: MASTER=local
-    scala: 2.11.12
-  - env: MASTER=local
-    scala: 2.12.8
   - env: MASTER=standalone STANDALONE_CACHE=$HOME/standalone-stuff
-    scala: 2.11.12
   - env: MASTER=yarn-distrib YARN_CACHE=$HOME/yarn-stuff STANDALONE_CACHE=$HOME/yarn-cache
-    scala: 2.11.12
   - env: MASTER=yarn YARN_CACHE=$HOME/yarn-stuff
-    scala: 2.11.12
-  - env: MASTER=yarn YARN_CACHE=$HOME/yarn-stuff
-    scala: 2.12.8
   - stage: release
     script: sbt ci-release
 branches:

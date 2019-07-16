@@ -15,19 +15,11 @@ object Settings {
     }
   }
 
-  private val scala211 = "2.11.12"
   private val scala212 = "2.12.8"
-
-  lazy val isAtLeast212 = setting {
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, n)) if n >= 12 => true
-      case _ => false
-    }
-  }
 
   lazy val shared = Seq(
     scalaVersion := scala212,
-    crossScalaVersions := Seq(scala212, scala211),
+    crossScalaVersions := Seq(scala212),
     scalacOptions ++= Seq(
       "-deprecation",
       "-feature",

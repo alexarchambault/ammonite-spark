@@ -98,11 +98,8 @@ if [ ! -d "$CACHE/hadoop-conf" ]; then
   test "$TRANSIENT_DOCKER_YARN_CLUSTER" = 0 || rm -rf "$CACHE/docker-yarn-cluster"
 fi
 
-SCALA_VERSION="${TRAVIS_SCALA_VERSION:-"2.11.12"}"
+SCALA_VERSION="${TRAVIS_SCALA_VERSION:-"2.12.8"}"
 case "$SCALA_VERSION" in
-  2.11.*)
-    SBV="2.11"
-    ;;
   2.12.*)
     SBV="2.12"
     ;;

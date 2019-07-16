@@ -11,8 +11,6 @@ import org.eclipse.jetty.server.handler.AbstractHandler
 
 final class AmmoniteClassServer(host: String, bindTo: String, port: Int, frames: => List[Frame]) {
 
-  import Compatibility._
-
   private val socketAddress = InetSocketAddress.createUnresolved(bindTo, port)
 
   private val handler = new AbstractHandler {
