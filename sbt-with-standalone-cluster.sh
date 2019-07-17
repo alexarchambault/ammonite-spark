@@ -5,9 +5,6 @@ HOST=localhost
 
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
-SPARK_HOME="$(./with-spark-home.sh /bin/bash -c 'echo $SPARK_HOME')"
-SPARK_VERSION="$(./with-spark-home.sh /bin/bash -c 'echo $SPARK_VERSION')"
-
 cleanup() {
   cd "$SPARK_HOME"
   ./sbin/stop-slave.sh || true
