@@ -519,11 +519,10 @@ class SparkReplTests(
     // tests below are custom ones
 
     "algebird" - {
-      if (scala.util.Properties.versionNumberString.startsWith("2.11."))
-        // no algebird-spark in scala 2.12 yet
+      if (scala.util.Properties.versionNumberString.startsWith("2.12."))
         sparkSession(
           """
-              @ import $ivy.`com.twitter::algebird-spark:0.13.0`
+              @ import $ivy.`com.twitter::algebird-spark:0.13.5`
 
               @ AmmoniteSparkSession.sync()
 
