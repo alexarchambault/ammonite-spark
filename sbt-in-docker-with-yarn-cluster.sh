@@ -45,13 +45,15 @@ if ! docker network inspect "$NETWORK" >/dev/null 2>&1; then
 fi
 
 # ports allow to more easily access stuff from the outside
-docker run -d \
-  -p 8088:8088 \
-  -p 8042:8042 \
-  --name "$NAMENODE" \
-  -h "$NAMENODE" \
-  --network "$NETWORK" \
-  alexarchambault/yarn-cluster /etc/bootstrap.sh -namenode -d
+if [[ -z "$(docker ps -qf name=namenode)" ]]; then
+  docker run -d \
+    -p 8088:8088 \
+    -p 8042:8042 \
+    --name "$NAMENODE" \
+    -h "$NAMENODE" \
+    --network "$NETWORK" \
+    alexarchambault/yarn-cluster /etc/bootstrap.sh -namenode -d
+fi
 
 echo "Waiting for namenode to be ready" 1>&2
 RETRY=20
@@ -80,8 +82,10 @@ fi
 
 export INPUT_TXT_URL="hdfs:///user/root/input.txt"
 
-echo "Copying file to $INPUT_TXT_URL"
-(docker exec -i "$NAMENODE" /usr/local/hadoop/bin/hdfs dfs -put - "$INPUT_TXT_URL") < modules/tests/src/main/resources/input.txt
+if ! docker exec -t "$NAMENODE" /usr/local/hadoop/bin/hdfs dfs -ls hdfs:///user/root/input.txt; then
+  echo "Copying file to $INPUT_TXT_URL"
+  (docker exec -i "$NAMENODE" /usr/local/hadoop/bin/hdfs dfs -put - "$INPUT_TXT_URL") < modules/tests/src/main/resources/input.txt
+fi
 
 if [ ! -d "$CACHE/hadoop-conf" ]; then
   echo "Getting Hadoop conf dir"
