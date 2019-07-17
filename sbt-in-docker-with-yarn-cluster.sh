@@ -31,12 +31,12 @@ CACHE="${YARN_CACHE:-"$(pwd)/target/yarn"}"
 mkdir -p "$CACHE"
 
 if [ ! -x "$CACHE/coursier" ]; then
-  curl -Lo "$CACHE/coursier" https://github.com/coursier/coursier/raw/v1.1.0-M6/coursier
+  curl -Lo "$CACHE/coursier" https://github.com/coursier/coursier/raw/v2.0.0-RC2-6/coursier
   chmod +x "$CACHE/coursier"
 fi
 
 if [ ! -x "$CACHE/sbt" ]; then
-  curl -Lo "$CACHE/sbt" https://github.com/paulp/sbt-extras/raw/65a871dc720c18614a0d8d0db6b52d25ed98dffb/sbt
+  curl -Lo "$CACHE/sbt" https://raw.githubusercontent.com/coursier/sbt-extras/e20d91edd7c2e9f4a17629dfae7d7d6bf9ba72a0/sbt
   chmod +x "$CACHE/sbt"
 fi
 
@@ -45,13 +45,15 @@ if ! docker network inspect "$NETWORK" >/dev/null 2>&1; then
 fi
 
 # ports allow to more easily access stuff from the outside
-docker run -d \
-  -p 8088:8088 \
-  -p 8042:8042 \
-  --name "$NAMENODE" \
-  -h "$NAMENODE" \
-  --network "$NETWORK" \
-  alexarchambault/yarn-cluster /etc/bootstrap.sh -namenode -d
+if [[ -z "$(docker ps -qf name=namenode)" ]]; then
+  docker run -d \
+    -p 8088:8088 \
+    -p 8042:8042 \
+    --name "$NAMENODE" \
+    -h "$NAMENODE" \
+    --network "$NETWORK" \
+    alexarchambault/yarn-cluster /etc/bootstrap.sh -namenode -d
+fi
 
 echo "Waiting for namenode to be ready" 1>&2
 RETRY=20
@@ -80,8 +82,10 @@ fi
 
 export INPUT_TXT_URL="hdfs:///user/root/input.txt"
 
-echo "Copying file to $INPUT_TXT_URL"
-(docker exec -i "$NAMENODE" /usr/local/hadoop/bin/hdfs dfs -put - "$INPUT_TXT_URL") < modules/tests/src/main/resources/input.txt
+if ! docker exec -t "$NAMENODE" /usr/local/hadoop/bin/hdfs dfs -ls hdfs:///user/root/input.txt; then
+  echo "Copying file to $INPUT_TXT_URL"
+  (docker exec -i "$NAMENODE" /usr/local/hadoop/bin/hdfs dfs -put - "$INPUT_TXT_URL") < modules/tests/src/main/resources/input.txt
+fi
 
 if [ ! -d "$CACHE/hadoop-conf" ]; then
   echo "Getting Hadoop conf dir"
@@ -98,11 +102,8 @@ if [ ! -d "$CACHE/hadoop-conf" ]; then
   test "$TRANSIENT_DOCKER_YARN_CLUSTER" = 0 || rm -rf "$CACHE/docker-yarn-cluster"
 fi
 
-SCALA_VERSION="${TRAVIS_SCALA_VERSION:-"2.11.12"}"
+SCALA_VERSION="${TRAVIS_SCALA_VERSION:-"2.12.8"}"
 case "$SCALA_VERSION" in
-  2.11.*)
-    SBV="2.11"
-    ;;
   2.12.*)
     SBV="2.12"
     ;;

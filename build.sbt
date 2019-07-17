@@ -15,32 +15,11 @@ inThisBuild(List(
   )
 ))
 
-lazy val `spark-stubs_20` = project
-  .underModules
-  .settings(
-    shared,
-    baseDirectory := {
-      val baseDir = baseDirectory.value
-
-      if (Settings.isAtLeast212.value)
-        baseDir / "target" / "dummy"
-      else
-        baseDir
-    },
-    libraryDependencies ++= {
-      if (Settings.isAtLeast212.value)
-        Nil
-      else
-        Seq(Deps.sparkSql20 % "provided")
-    },
-    publishArtifact := !Settings.isAtLeast212.value
-  )
-
 lazy val `spark-stubs_24` = project
   .underModules
   .settings(
     shared,
-    libraryDependencies += Deps.sparkSql24 % "provided"
+    libraryDependencies += Deps.sparkSql % "provided"
   )
 
 lazy val core = project
@@ -50,8 +29,8 @@ lazy val core = project
     name := "ammonite-spark",
     generatePropertyFile("org/apache/spark/sql/ammonitesparkinternals/ammonite-spark.properties"),
     libraryDependencies ++= Seq(
-      Deps.ammoniteReplApi.value % "provided",
-      Deps.sparkSql.value % "provided",
+      Deps.ammoniteReplApi % "provided",
+      Deps.sparkSql % "provided",
       Deps.jettyServer
     )
   )
@@ -65,7 +44,7 @@ lazy val tests = project
     generateDependenciesFile,
     testSettings,
     libraryDependencies ++= Seq(
-      Deps.ammoniteRepl.value,
+      Deps.ammoniteRepl,
       Deps.utest
     )
   )
@@ -110,7 +89,6 @@ lazy val `ammonite-spark` = project
   .in(file("."))
   .aggregate(
     core,
-    `spark-stubs_20`,
     `spark-stubs_24`,
     tests
   )
