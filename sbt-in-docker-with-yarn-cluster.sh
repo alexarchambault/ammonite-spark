@@ -31,7 +31,7 @@ CACHE="${YARN_CACHE:-"$(pwd)/target/yarn"}"
 mkdir -p "$CACHE"
 
 if [ ! -x "$CACHE/coursier" ]; then
-  curl -Lo "$CACHE/coursier" https://github.com/coursier/coursier/raw/v1.1.0-M6/coursier
+  curl -Lo "$CACHE/coursier" https://github.com/coursier/coursier/raw/v2.0.0-RC2-6/coursier
   chmod +x "$CACHE/coursier"
 fi
 
