@@ -88,7 +88,7 @@ object Settings {
         .sorted
         .map {
           case (org, name, ver) =>
-            s"$org:$name:$ver"
+            s"${org.value}:${name.value}:$ver"
         }
         .mkString("\n")
 

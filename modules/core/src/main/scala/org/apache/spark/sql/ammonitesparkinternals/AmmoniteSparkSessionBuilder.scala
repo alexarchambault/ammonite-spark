@@ -237,9 +237,9 @@ class AmmoniteSparkSessionBuilder
         // Loose attempt at using the scala JARs already loaded in Ammonite,
         // rather than ones from the spark distribution.
         val fromBaseCp = jars.filter { f =>
-          f.toASCIIString.contains("/scala-library-") ||
-            f.toASCIIString.contains("/scala-reflect-") ||
-            f.toASCIIString.contains("/scala-compiler-")
+          f.toASCIIString.contains("/scala-library") ||
+            f.toASCIIString.contains("/scala-reflect") ||
+            f.toASCIIString.contains("/scala-compiler")
         }
         val fromSparkDistrib = Files.list(Paths.get(sparkHome).resolve("jars"))
           .iterator()
