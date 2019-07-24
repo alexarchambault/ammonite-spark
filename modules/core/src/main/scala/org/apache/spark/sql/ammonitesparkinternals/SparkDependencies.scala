@@ -127,9 +127,10 @@ object SparkDependencies {
 
   def sparkJars(
     repositories: Seq[Repository],
+    resolutionHooks: mutable.Buffer[Fetch => Fetch],
     profiles: Seq[String]
-  ): Seq[URI] =
-    Fetch.create()
+  ): Seq[URI] = {
+    val fetch = Fetch.create()
       .addDependencies(sparkBaseDependencies(): _*)
       .withRepositories(repositories: _*)
       .withResolutionParams(
@@ -139,9 +140,12 @@ object SparkDependencies {
           .forceVersion(Module.of("org.scala-lang", "scala-compiler"), scalaVersion)
           .withProfiles(profiles.toSet.asJava)
       )
+
+    resolutionHooks
+      .foldLeft(fetch){ case (acc, f) => f(acc) }
       .fetch()
       .asScala
       .toVector
       .map(_.getAbsoluteFile.toURI)
-
+  }
 }
