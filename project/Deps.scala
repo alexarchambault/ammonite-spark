@@ -12,6 +12,6 @@ object Deps {
   def jettyServer = "org.eclipse.jetty" % "jetty-server" % "9.4.20.v20190813"
   def utest = "com.lihaoyi" %% "utest" % "0.7.1"
 
-  def sparkSql = "org.apache.spark" %% "spark-sql" % "2.4.0"
+  def sparkSql = "org.apache.spark" %% "spark-sql" % "2.4.4"
 
 }
