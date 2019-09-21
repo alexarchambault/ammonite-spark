@@ -1,10 +1,6 @@
 language: java
 jdk: openjdk8
 before_install:
-  - mkdir .bin
-  - curl -Lo .bin/sbt https://raw.githubusercontent.com/coursier/sbt-extras/150686c3d67c9e531a381283a803eb53d72735ab/sbt
-  - chmod +x .bin/sbt
-  - export PATH="$(pwd)/.bin:$PATH"
   - export TRAVIS_SCALA_VERSION=2.12.10
 script: ./.travis.sh
 sudo: required
@@ -28,7 +24,7 @@ jobs:
   - env: MASTER=yarn-distrib YARN_CACHE=$HOME/yarn-stuff STANDALONE_CACHE=$HOME/yarn-cache
   - env: MASTER=yarn YARN_CACHE=$HOME/yarn-stuff
   - stage: release
-    script: sbt ci-release
+    script: ./sbt ci-release
 branches:
   only:
   - master
