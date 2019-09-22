@@ -10,7 +10,7 @@ CACHE="${STANDALONE_CACHE:-"$BASE/target/standalone"}"
 mkdir -p "$CACHE"
 
 if ! ls modules/spark-stubs_24/target/scala-2.12/spark-stubs_24_2.12-*.jar >/dev/null 2>&1; then
-  sbt spark-stubs_24/packageBin
+  ./sbt spark-stubs_24/packageBin
 fi
 SPARK_STUBS_JAR="$(ls "$(pwd)/modules/spark-stubs_24/target/scala-2.12/spark-stubs_24_2.12-"*.jar)"
 

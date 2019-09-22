@@ -15,7 +15,7 @@ object Settings {
     }
   }
 
-  private val scala212 = "2.12.8"
+  private val scala212 = "2.12.10"
 
   lazy val shared = Seq(
     scalaVersion := scala212,

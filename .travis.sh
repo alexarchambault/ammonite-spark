@@ -3,9 +3,9 @@ set -e
 
 case "${MASTER:-"local"}" in
   local)
-    sbt ++$TRAVIS_SCALA_VERSION'!' publishLocal test ;;
+    ./sbt ++$TRAVIS_SCALA_VERSION'!' publishLocal test ;;
   local-distrib)
-    ./with-spark-home.sh sbt ++$TRAVIS_SCALA_VERSION'!' publishLocal local-spark-distrib-tests/test ;;
+    ./with-spark-home.sh ./sbt ++$TRAVIS_SCALA_VERSION'!' publishLocal local-spark-distrib-tests/test ;;
   standalone)
     ./with-spark-home.sh ./sbt-with-standalone-cluster.sh ++$TRAVIS_SCALA_VERSION'!' publishLocal standalone-tests/test ;;
   yarn)

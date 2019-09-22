@@ -35,10 +35,8 @@ if [ ! -x "$CACHE/coursier" ]; then
   chmod +x "$CACHE/coursier"
 fi
 
-if [ ! -x "$CACHE/sbt" ]; then
-  curl -Lo "$CACHE/sbt" https://raw.githubusercontent.com/coursier/sbt-extras/e20d91edd7c2e9f4a17629dfae7d7d6bf9ba72a0/sbt
-  chmod +x "$CACHE/sbt"
-fi
+cp sbt "$CACHE/sbt"
+chmod +x "$CACHE/sbt"
 
 if ! docker network inspect "$NETWORK" >/dev/null 2>&1; then
   docker network create "$NETWORK"
@@ -132,7 +130,9 @@ if [ "\$SPARK_HOME" = "" ]; then
   done
 fi
 
-exec sbt -J-Xmx1g "\$@"
+$(if [ "$INTERACTIVE" = 0 ]; then echo "export CI=true"; fi)
+
+exec sbt $(if [ "$INTERACTIVE" = 0 ]; then echo "-batch"; fi) -J-Xmx1g "\$@"
 EOF
 
 chmod +x "$CACHE/run.sh"
