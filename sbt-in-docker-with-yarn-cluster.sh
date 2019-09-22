@@ -130,7 +130,9 @@ if [ "\$SPARK_HOME" = "" ]; then
   done
 fi
 
-exec sbt -J-Xmx1g "\$@"
+$(if [ "$INTERACTIVE" = 0 ]; then echo "export CI=true"; fi)
+
+exec sbt $(if [ "$INTERACTIVE" = 0 ]; then echo "-batch"; fi) -J-Xmx1g "\$@"
 EOF
 
 chmod +x "$CACHE/run.sh"
