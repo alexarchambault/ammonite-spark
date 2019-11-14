@@ -92,10 +92,16 @@ object SparkDependencies {
   }
 
   def stubsDependency = {
-    val suffix = org.apache.spark.SPARK_VERSION.split('.').take(2) match {
+    val sv = org.apache.spark.SPARK_VERSION
+    val suffix = sv.split('.').take(2) match {
       case Array("2", n) if Try(n.toInt).toOption.exists(_ <= 3) =>
         "20"
+      case Array("2", n) if Try(n.toInt).toOption.exists(_ >= 4) =>
+        "24"
+      case Array("3", n) =>
+        "30"
       case _ =>
+        System.err.println(s"Warning: unrecognized Spark version ($sv), assuming 2.4.x")
         "24"
     }
     Dependency.of(
