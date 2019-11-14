@@ -126,7 +126,7 @@ if [ "\$SPARK_HOME" = "" ]; then
 
   for d in "\${DEPS[@]}"; do
     echo "Pre-fetching \$d"
-    coursier fetch $(if [ "$INTERACTIVE" = 1 ]; then echo --progress; fi) "\$d" >/dev/null
+    coursier fetch "\$d" $(if [ "$INTERACTIVE" = 1 ]; then echo --progress; else echo "</dev/null"; fi) >/dev/null
   done
 fi
 
