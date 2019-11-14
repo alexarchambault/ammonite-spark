@@ -118,15 +118,16 @@ set -e
 if [ "\$SPARK_HOME" = "" ]; then
   # prefetch stuff
 
-  export SPARK_VERSION="2.4.0"
+  for SPARK_VERSION in "2.4.4" "3.0.0-preview"; do
 
-  DEPS=()
-  DEPS+=("org.apache.spark:spark-sql_$SBV:\$SPARK_VERSION")
-  DEPS+=("org.apache.spark:spark-yarn_$SBV:\$SPARK_VERSION")
+    DEPS=()
+    DEPS+=("org.apache.spark:spark-sql_$SBV:\$SPARK_VERSION")
+    DEPS+=("org.apache.spark:spark-yarn_$SBV:\$SPARK_VERSION")
 
-  for d in "\${DEPS[@]}"; do
-    echo "Pre-fetching \$d"
-    coursier fetch "\$d" $(if [ "$INTERACTIVE" = 1 ]; then echo --progress; else echo "</dev/null"; fi) >/dev/null
+    for d in "\${DEPS[@]}"; do
+      echo "Pre-fetching \$d"
+      coursier fetch "\$d" $(if [ "$INTERACTIVE" = 1 ]; then echo --progress; else echo "</dev/null"; fi) >/dev/null
+    done
   done
 fi
 
