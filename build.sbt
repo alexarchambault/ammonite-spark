@@ -19,7 +19,7 @@ lazy val `spark-stubs_24` = project
   .underModules
   .settings(
     shared,
-    libraryDependencies += Deps.sparkSql % "provided"
+    libraryDependencies += Deps.sparkSql % Provided
   )
 
 lazy val core = project
@@ -29,8 +29,8 @@ lazy val core = project
     name := "ammonite-spark",
     generatePropertyFile("org/apache/spark/sql/ammonitesparkinternals/ammonite-spark.properties"),
     libraryDependencies ++= Seq(
-      Deps.ammoniteReplApi % "provided",
-      Deps.sparkSql % "provided",
+      Deps.ammoniteReplApi % Provided,
+      Deps.sparkSql % Provided,
       Deps.jettyServer
     )
   )
