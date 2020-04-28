@@ -3,7 +3,7 @@ set -e
 
 case "${MASTER:-"local"}" in
   local)
-    ./sbt ++$TRAVIS_SCALA_VERSION'!' publishLocal test ;;
+    ./sbt ++$TRAVIS_SCALA_VERSION'!' publishLocal test mimaReportBinaryIssues ;;
   local-distrib)
     ./with-spark-home.sh ./sbt ++$TRAVIS_SCALA_VERSION'!' publishLocal local-spark-distrib-tests/test ;;
   standalone)

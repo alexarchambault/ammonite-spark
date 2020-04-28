@@ -16,6 +16,7 @@ inThisBuild(List(
 ))
 
 lazy val `spark-stubs_24` = project
+  .disablePlugins(MimaPlugin)
   .underModules
   .settings(
     shared,
@@ -23,6 +24,7 @@ lazy val `spark-stubs_24` = project
   )
 
 lazy val `spark-stubs_30` = project
+  .disablePlugins(MimaPlugin)
   .underModules
   .settings(
     shared,
@@ -34,6 +36,7 @@ lazy val core = project
   .settings(
     shared,
     name := "ammonite-spark",
+    Mima.settings,
     generatePropertyFile("org/apache/spark/sql/ammonitesparkinternals/ammonite-spark.properties"),
     libraryDependencies ++= Seq(
       Deps.ammoniteReplApi % Provided,
@@ -43,56 +46,62 @@ lazy val core = project
   )
 
 lazy val tests = project
+  .disablePlugins(MimaPlugin)
   .underModules
   .settings(
     shared,
-    dontPublish,
+    skip.in(publish) := true,
     generatePropertyFile("ammonite/ammonite-spark.properties"),
     generateDependenciesFile,
     testSettings,
     libraryDependencies ++= Seq(
-      Deps.ammoniteRepl,
+      Deps.ammoniteRepl.exclude("com.google.guava", "guava"),
       Deps.utest
     )
   )
 
 lazy val `local-spark-distrib-tests` = project
+  .disablePlugins(MimaPlugin)
   .dependsOn(tests)
   .underModules
   .settings(
     shared,
-    dontPublish,
+    skip.in(publish) := true,
     testSettings
   )
 
 lazy val `standalone-tests` = project
+  .disablePlugins(MimaPlugin)
   .dependsOn(tests)
   .underModules
   .settings(
     shared,
-    dontPublish,
+    skip.in(publish) := true,
     testSettings
   )
 
 lazy val `yarn-tests` = project
+  .disablePlugins(MimaPlugin)
   .dependsOn(tests)
   .underModules
   .settings(
     shared,
-    dontPublish,
+    skip.in(publish) := true,
     testSettings
   )
 
 lazy val `yarn-spark-distrib-tests` = project
+  .disablePlugins(MimaPlugin)
   .dependsOn(tests)
   .underModules
   .settings(
     shared,
-    dontPublish,
+    skip.in(publish) := true,
     testSettings
   )
 
 lazy val `ammonite-spark` = project
+  .disablePlugins(MimaPlugin)
   .in(file("."))
   .aggregate(
     core,
@@ -101,6 +110,6 @@ lazy val `ammonite-spark` = project
     tests
   )
   .settings(
-    shared,
-    dontPublish
+    crossScalaVersions := Nil,
+    skip.in(publish) := true
   )
