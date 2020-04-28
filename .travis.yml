@@ -3,7 +3,6 @@ jdk: openjdk8
 before_install:
   - export TRAVIS_SCALA_VERSION=2.12.10
 script: ./.travis.sh
-sudo: required
 cache:
   directories:
   - $HOME/.cache
