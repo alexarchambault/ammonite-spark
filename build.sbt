@@ -16,6 +16,7 @@ inThisBuild(List(
 ))
 
 lazy val `spark-stubs_24` = project
+  .disablePlugins(MimaPlugin)
   .underModules
   .settings(
     shared,
@@ -23,6 +24,7 @@ lazy val `spark-stubs_24` = project
   )
 
 lazy val `spark-stubs_30` = project
+  .disablePlugins(MimaPlugin)
   .underModules
   .settings(
     shared,
@@ -34,6 +36,7 @@ lazy val core = project
   .settings(
     shared,
     name := "ammonite-spark",
+    Mima.settings,
     generatePropertyFile("org/apache/spark/sql/ammonitesparkinternals/ammonite-spark.properties"),
     libraryDependencies ++= Seq(
       Deps.ammoniteReplApi % Provided,
@@ -43,6 +46,7 @@ lazy val core = project
   )
 
 lazy val tests = project
+  .disablePlugins(MimaPlugin)
   .underModules
   .settings(
     shared,
@@ -57,6 +61,7 @@ lazy val tests = project
   )
 
 lazy val `local-spark-distrib-tests` = project
+  .disablePlugins(MimaPlugin)
   .dependsOn(tests)
   .underModules
   .settings(
@@ -66,6 +71,7 @@ lazy val `local-spark-distrib-tests` = project
   )
 
 lazy val `standalone-tests` = project
+  .disablePlugins(MimaPlugin)
   .dependsOn(tests)
   .underModules
   .settings(
@@ -75,6 +81,7 @@ lazy val `standalone-tests` = project
   )
 
 lazy val `yarn-tests` = project
+  .disablePlugins(MimaPlugin)
   .dependsOn(tests)
   .underModules
   .settings(
@@ -84,6 +91,7 @@ lazy val `yarn-tests` = project
   )
 
 lazy val `yarn-spark-distrib-tests` = project
+  .disablePlugins(MimaPlugin)
   .dependsOn(tests)
   .underModules
   .settings(
@@ -93,6 +101,7 @@ lazy val `yarn-spark-distrib-tests` = project
   )
 
 lazy val `ammonite-spark` = project
+  .disablePlugins(MimaPlugin)
   .in(file("."))
   .aggregate(
     core,
