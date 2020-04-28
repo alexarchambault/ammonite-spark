@@ -3,7 +3,7 @@ import java.nio.charset.StandardCharsets.UTF_8
 import java.nio.file.Files
 
 import sbt._
-import sbt.Def._
+import sbt.Def.{update => _, _}
 import sbt.Keys._
 
 object Settings {
@@ -63,26 +63,30 @@ object Settings {
     resourceGenerators.in(Compile) += Def.task {
 
       val dir = classDirectory.in(Compile).value / "ammonite" / "spark"
-      val res = coursier.sbtcoursier.CoursierPlugin.autoImport.coursierResolutions
-        .value
-        .collectFirst {
-          case (scopes, r) if scopes(coursier.core.Configuration.compile) =>
-            r
-        }
-        .getOrElse(
-          sys.error("compile coursier resolution not found")
-        )
 
-      val content = res
-        .minDependencies
-        .toVector
-        .map { d =>
-          (d.module.organization, d.module.name, d.version)
+      val configReport = update
+        .in(Compile)
+        .value
+        .configurations
+        .find { configReport0 =>
+          configReport0.configuration.name == Compile.name
+        }
+        .getOrElse {
+          sys.error(s"Configuration report for ${Compile.name} not found")
+        }
+
+      val content = configReport
+        .modules
+        .filter(!_.evicted)
+        .map(_.module)
+        .map { mod =>
+          assert(mod.crossVersion == CrossVersion.disabled)
+          (mod.organization, mod.name, mod.revision)
         }
         .sorted
         .map {
           case (org, name, ver) =>
-            s"${org.value}:${name.value}:$ver"
+            s"$org:$name:$ver"
         }
         .mkString("\n")
 
