@@ -35,12 +35,6 @@ object Settings {
     javaOptions.in(Test) ++= Seq("-Xmx3g", "-Dfoo=bzz")
   )
 
-  lazy val dontPublish = Seq(
-    publish := (),
-    publishLocal := (),
-    publishArtifact := false
-  )
-
   def generatePropertyFile(path: String) =
     resourceGenerators.in(Compile) += Def.task {
       import sys.process._

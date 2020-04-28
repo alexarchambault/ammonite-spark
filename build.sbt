@@ -46,7 +46,7 @@ lazy val tests = project
   .underModules
   .settings(
     shared,
-    dontPublish,
+    skip.in(publish) := true,
     generatePropertyFile("ammonite/ammonite-spark.properties"),
     generateDependenciesFile,
     testSettings,
@@ -61,7 +61,7 @@ lazy val `local-spark-distrib-tests` = project
   .underModules
   .settings(
     shared,
-    dontPublish,
+    skip.in(publish) := true,
     testSettings
   )
 
@@ -70,7 +70,7 @@ lazy val `standalone-tests` = project
   .underModules
   .settings(
     shared,
-    dontPublish,
+    skip.in(publish) := true,
     testSettings
   )
 
@@ -79,7 +79,7 @@ lazy val `yarn-tests` = project
   .underModules
   .settings(
     shared,
-    dontPublish,
+    skip.in(publish) := true,
     testSettings
   )
 
@@ -88,7 +88,7 @@ lazy val `yarn-spark-distrib-tests` = project
   .underModules
   .settings(
     shared,
-    dontPublish,
+    skip.in(publish) := true,
     testSettings
   )
 
@@ -101,6 +101,6 @@ lazy val `ammonite-spark` = project
     tests
   )
   .settings(
-    shared,
-    dontPublish
+    crossScalaVersions := Nil,
+    skip.in(publish) := true
   )
