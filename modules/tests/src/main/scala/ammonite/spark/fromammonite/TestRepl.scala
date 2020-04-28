@@ -94,21 +94,10 @@ class TestRepl {
   val sess0 = new SessionApiImpl(frames)
 
   var currentLine = 0
-  lazy val interp: Interpreter = try {
+  val interp = try {
     new Interpreter(
       printer = printer0,
       storage = storage,
-      basePredefs = Seq(
-        PredefInfo(
-          Name("defaultPredef"),
-          ammonite.main.Defaults.replPredef + ammonite.main.Defaults.predefString,
-          true,
-          None
-        ),
-        PredefInfo(Name("testPredef"), predef._1, false, predef._2)
-      ),
-      customPredefs = Seq(),
-      extraBridges = extraBridges,
       wd = ammonite.ops.pwd,
       colors = Ref(Colors.BlackWhite),
       verboseOutput = true,
@@ -128,8 +117,17 @@ class TestRepl {
     throw e
   }
 
+  val basePredefs = Seq(
+    PredefInfo(
+      Name("defaultPredef"),
+      ammonite.main.Defaults.replPredef + ammonite.main.Defaults.predefString,
+      true,
+      None
+    ),
+    PredefInfo(Name("testPredef"), predef._1, false, predef._2)
+  )
 
-  for ((error, _) <- interp.initializePredef()) {
+  for ((error, _) <- interp.initializePredef(basePredefs, Seq(), extraBridges)) {
     val (msgOpt, causeOpt) = error match {
       case r: Res.Exception => (Some(r.msg), Some(r.t))
       case r: Res.Failure => (Some(r.msg), None)
