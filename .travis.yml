@@ -17,10 +17,10 @@ stages:
     if: (branch = master AND type = push) OR (tag IS present)
 jobs:
   include:
-  - env: MASTER=local-distrib
+  # - env: MASTER=local-distrib
   - env: MASTER=local
   - env: MASTER=standalone STANDALONE_CACHE=$HOME/standalone-stuff
-  - env: MASTER=yarn-distrib YARN_CACHE=$HOME/yarn-stuff STANDALONE_CACHE=$HOME/yarn-cache
+  # - env: MASTER=yarn-distrib YARN_CACHE=$HOME/yarn-stuff STANDALONE_CACHE=$HOME/yarn-cache
   - env: MASTER=yarn YARN_CACHE=$HOME/yarn-stuff
   - stage: release
     script: ./sbt ci-release
