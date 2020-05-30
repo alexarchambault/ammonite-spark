@@ -117,15 +117,9 @@ class TestRepl {
     throw e
   }
 
-  val basePredefs = Seq(
-    PredefInfo(
-      Name("defaultPredef"),
-      ammonite.main.Defaults.replPredef + ammonite.main.Defaults.predefString,
-      true,
-      None
-    ),
-    PredefInfo(Name("testPredef"), predef._1, false, predef._2)
-  )
+  val basePredefs =
+    if (predef._1.isEmpty) Nil
+    else Seq(PredefInfo(Name("testPredef"), predef._1, false, predef._2))
 
   for ((error, _) <- interp.initializePredef(basePredefs, Seq(), extraBridges)) {
     val (msgOpt, causeOpt) = error match {
