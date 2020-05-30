@@ -1,16 +1,23 @@
 #!/usr/bin/env bash
 set -e
 
+updateCaCertificates() {
+  sudo apt install ca-certificates -y
+  sudo update-ca-certificates
+}
+
 case "${MASTER:-"local"}" in
   local)
     ./sbt ++$TRAVIS_SCALA_VERSION'!' publishLocal test mimaReportBinaryIssues ;;
   local-distrib)
+    updateCaCertificates()
     ./with-spark-home.sh ./sbt ++$TRAVIS_SCALA_VERSION'!' publishLocal local-spark-distrib-tests/test ;;
   standalone)
     ./with-spark-home.sh ./sbt-with-standalone-cluster.sh ++$TRAVIS_SCALA_VERSION'!' publishLocal standalone-tests/test ;;
   yarn)
     ./sbt-in-docker-with-yarn-cluster.sh -batch ++$TRAVIS_SCALA_VERSION'!' publishLocal yarn-tests/test ;;
   yarn-distrib)
+    updateCaCertificates()
     ./with-spark-home.sh ./sbt-in-docker-with-yarn-cluster.sh -batch ++$TRAVIS_SCALA_VERSION'!' publishLocal yarn-spark-distrib-tests/test ;;
   *)
     echo "Unrecognized master type $MASTER"
