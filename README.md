@@ -23,21 +23,22 @@ Run [spark](https://spark.apache.org/) calculations from [Ammonite](http://ammon
 
 ## Quick start
 
-Start Ammonite >= [`1.6.3`](https://github.com/lihaoyi/Ammonite/releases/download/1.6.3/2.11-1.6.3), with the `--class-based` option. Either follow [the instructions](http://ammonite.io/#Ammonite-REPL) on its website, then do
+Start Ammonite >= [`1.6.3`](https://github.com/lihaoyi/Ammonite/releases/download/1.6.3/2.11-1.6.3), with the `--class-based` option. The [compatibility section](#compatibility) lists the compatible versions of Ammonite and ammonite-spark. Start Ammonite by either following [the Ammonite instructions](http://ammonite.io/#Ammonite-REPL) on its website, then do
 ```
 $ amm --class-based
 ```
 or use [coursier](https://github.com/coursier/coursier),
 ```
-$ coursier launch com.lihaoyi:ammonite_2.11.12:1.6.3 -M ammonite.Main -- --class-based
+$ cs launch ammonite:2.1.4 --scala 2.12.11 -- --class-based
 ```
-In both cases, if you are using Spark 2.0 - 2.3, ensure you are using scala 2.11.x.
+Ensure you are using scala 2.12, the only supported Scala version as of writing this.
 
 At the Ammonite prompt, load the Spark 2.x version of your choice, along with ammonite-spark,
 ```scala
 @ import $ivy.`org.apache.spark::spark-sql:2.4.0`
 @ import $ivy.`sh.almond::ammonite-spark:0.3.0`
 ```
+(Note the two `::` before `spark-sql` or `ammonite-spark`, as these are scala dependencies.)
 
 Then create a `SparkSession` using the builder provided by *ammonite-spark*
 ```scala
@@ -142,9 +143,11 @@ with for sure.
 | `0.7.1`          | `1.7.3-3-b95f921`  |         |
 | `0.7.2`          | `1.7.4`  | `0.8.2`, `0.8.3` |
 | `0.8.0`          | `1.8.1`  |         |
+| `0.9.0`          | `2.0.4`  |         |
+| `0.10.0`          | `2.1.4`  |         |
 
 ## Missing
 
 Local clusters, Mesos, and Kubernetes, aren't supported yet.
 
-No scala 2.10 support (it was dropped by Ammonite).
+No scala 2.10 or 2.11 support (support for those was dropped by Ammonite).
