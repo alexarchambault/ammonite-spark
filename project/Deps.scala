@@ -10,7 +10,7 @@ object Deps {
   def ammoniteRepl = ("com.lihaoyi" % "ammonite-repl" % ammoniteVersion).cross(CrossVersion.full)
 
   def jettyServer = "org.eclipse.jetty" % "jetty-server" % "9.4.35.v20201120"
-  def utest = "com.lihaoyi" %% "utest" % "0.7.5"
+  def utest = "com.lihaoyi" %% "utest" % "0.7.6"
 
   def sparkSql = "org.apache.spark" %% "spark-sql" % "2.4.0"
   def sparkSql3 = "org.apache.spark" %% "spark-sql" % "3.0.0"
