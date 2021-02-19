@@ -55,6 +55,7 @@ lazy val tests = project
     generateDependenciesFile,
     testSettings,
     libraryDependencies ++= Seq(
+      Deps.ammoniteCompiler.exclude("com.google.guava", "guava"),
       Deps.ammoniteRepl.exclude("com.google.guava", "guava"),
       Deps.utest
     )
