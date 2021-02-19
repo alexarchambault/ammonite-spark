@@ -37,8 +37,17 @@ jobs:
       env:
         MASTER: ${{ matrix.MASTER }}
 
-  release:
+  # job whose name doesn't change when we bump Scala versions, add OSes, …
+  # We require this job for auto-merge.
+  all-tests:
     needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - run: true
+      shell: bash
+
+  release:
+    needs: all-tests
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
