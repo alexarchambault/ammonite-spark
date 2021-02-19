@@ -5,12 +5,13 @@ import sbt.Keys._
 
 object Deps {
 
-  private def ammoniteVersion = "2.3.8-4-88785969"
+  private def ammoniteVersion = "2.3.8-36-1cce53f3"
+  def ammoniteCompiler = ("com.lihaoyi" % "ammonite-compiler" % ammoniteVersion).cross(CrossVersion.full)
   def ammoniteReplApi = ("com.lihaoyi" % "ammonite-repl-api" % ammoniteVersion).cross(CrossVersion.full)
   def ammoniteRepl = ("com.lihaoyi" % "ammonite-repl" % ammoniteVersion).cross(CrossVersion.full)
 
-  def jettyServer = "org.eclipse.jetty" % "jetty-server" % "11.0.0"
-  def utest = "com.lihaoyi" %% "utest" % "0.7.5"
+  def jettyServer = "org.eclipse.jetty" % "jetty-server" % "9.4.36.v20210114"
+  def utest = "com.lihaoyi" %% "utest" % "0.7.7"
 
   def sparkSql = "org.apache.spark" %% "spark-sql" % "2.4.0"
   def sparkSql3 = "org.apache.spark" %% "spark-sql" % "3.0.0"

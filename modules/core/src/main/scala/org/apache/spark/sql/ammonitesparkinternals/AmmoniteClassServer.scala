@@ -5,7 +5,7 @@ import java.net.{InetSocketAddress, ServerSocket, URI}
 import java.nio.file.Files
 
 import javax.servlet.http.{HttpServletRequest, HttpServletResponse}
-import ammonite.repl.api.Frame
+import ammonite.util.Frame
 import org.eclipse.jetty.server.{Request, Server}
 import org.eclipse.jetty.server.handler.AbstractHandler
 

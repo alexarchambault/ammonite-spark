@@ -144,7 +144,7 @@ class AmmoniteSparkSessionBuilder
     val content = new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8)
 
     val extraProps = content
-      .lines
+      .linesIterator
       .toVector
       .filter(!_.startsWith("#"))
       .map(_.split("\\s+", 2))
