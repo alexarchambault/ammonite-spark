@@ -27,7 +27,7 @@ jobs:
     - uses: coursier/cache-action@v5
       with:
         extraFiles: "[\".github/scripts/*\", \".github/workflows/ci.yml\", \"*.sh\"]"
-        extraKey: test
+        extraKey: test-${{ matrix.MASTER }}
     - uses: laughedelic/coursier-setup@v1
       with:
         jvm: 8
