@@ -5,7 +5,7 @@ import sbt.Keys._
 
 object Deps {
 
-  private def ammoniteVersion = "2.3.8-36-1cce53f3"
+  private def ammoniteVersion = "2.3.8-53-e23fe029"
   def ammoniteCompiler = ("com.lihaoyi" % "ammonite-compiler" % ammoniteVersion).cross(CrossVersion.full)
   def ammoniteReplApi = ("com.lihaoyi" % "ammonite-repl-api" % ammoniteVersion).cross(CrossVersion.full)
   def ammoniteRepl = ("com.lihaoyi" % "ammonite-repl" % ammoniteVersion).cross(CrossVersion.full)
