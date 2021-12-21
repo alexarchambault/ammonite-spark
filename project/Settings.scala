@@ -30,16 +30,16 @@ object Settings {
   )
 
   lazy val testSettings = Seq(
-    fork.in(Test) := true, // Java serialization goes awry without that
+    (Test / fork) := true, // Java serialization goes awry without that
     testFrameworks += new TestFramework("utest.runner.Framework"),
-    javaOptions.in(Test) ++= Seq("-Xmx3g", "-Dfoo=bzz")
+    (Test / javaOptions) ++= Seq("-Xmx3g", "-Dfoo=bzz")
   )
 
   def generatePropertyFile(path: String) =
-    resourceGenerators.in(Compile) += Def.task {
+    (Compile / resourceGenerators) += Def.task {
       import sys.process._
 
-      val dir = classDirectory.in(Compile).value
+      val dir = (Compile / classDirectory).value
       val ver = version.value
 
       val f = path.split('/').foldLeft(dir)(_ / _)
@@ -60,12 +60,11 @@ object Settings {
     }
 
   lazy val generateDependenciesFile =
-    resourceGenerators.in(Compile) += Def.task {
+    (Compile / resourceGenerators) += Def.task {
 
-      val dir = classDirectory.in(Compile).value / "ammonite" / "spark"
+      val dir = (Compile / classDirectory).value / "ammonite" / "spark"
 
-      val configReport = update
-        .in(Compile)
+      val configReport = (Compile / update)
         .value
         .configurations
         .find { configReport0 =>
