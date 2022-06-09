@@ -31,6 +31,14 @@ lazy val `spark-stubs_30` = project
     libraryDependencies += Deps.sparkSql3 % Provided
   )
 
+lazy val `spark-stubs_32` = project
+  .disablePlugins(MimaPlugin)
+  .underModules
+  .settings(
+    shared,
+    libraryDependencies += Deps.sparkSql32 % Provided
+  )
+
 lazy val core = project
   .in(file("modules/core"))
   .settings(
@@ -108,6 +116,7 @@ lazy val `ammonite-spark` = project
     core,
     `spark-stubs_24`,
     `spark-stubs_30`,
+    `spark-stubs_32`,
     tests
   )
   .settings(

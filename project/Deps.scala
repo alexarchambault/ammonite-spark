@@ -15,5 +15,6 @@ object Deps {
 
   def sparkSql = "org.apache.spark" %% "spark-sql" % "2.4.0"
   def sparkSql3 = "org.apache.spark" %% "spark-sql" % "3.0.0"
+  def sparkSql32 = "org.apache.spark" %% "spark-sql" % "3.2.0"
 
 }
