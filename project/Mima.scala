@@ -19,7 +19,17 @@ object Mima {
 
   def settings = Def.settings(
     MimaPlugin.autoImport.mimaPreviousArtifacts := {
-      binaryCompatibilityVersions
+      val sv = scalaVersion.value
+      val binaryCompatibilityVersions0 =
+        if (sv.startsWith("2.12.")) binaryCompatibilityVersions
+        else
+          binaryCompatibilityVersions.filter { v =>
+            !v.startsWith("0.9.") &&
+              !v.startsWith("0.10.") &&
+              !v.startsWith("0.11.") &&
+              !v.startsWith("0.12.")
+          }
+      binaryCompatibilityVersions0
         .map { ver =>
           (organization.value % moduleName.value % ver)
             .cross(crossVersion.value)

@@ -3,11 +3,15 @@ package ammonite.spark
 import ammonite.spark.fromammonite.TestRepl
 import utest._
 
+import scala.util.Properties.versionNumberString
+
 class SparkReplTests(
   val sparkVersion: String,
   val master: String,
   val conf: (String, String)*
 ) extends TestSuite {
+
+  private def is212 = versionNumberString.startsWith("2.12.")
 
   // Most of the tests here were adapted from https://github.com/apache/spark/blob/ab18b02e66fd04bc8f1a4fb7b6a7f2773902a494/repl/src/test/scala/org/apache/spark/repl/SingletonReplSuite.scala
 
@@ -181,13 +185,15 @@ class SparkReplTests(
     }
 
     "SPARK-1199 two instances of same class don't type check" - {
+      val expFieldNamePart = if (is212) "" else "exp = "
+      val exp2FieldNamePart = if (is212) "" else "exp2 = "
       sparkSession(
-        """
+        s"""
             @ case class Sum(exp: String, exp2: String)
             defined class Sum
 
             @ val a = Sum("A", "B")
-            a: Sum = Sum("A", "B")
+            a: Sum = Sum(${expFieldNamePart}"A", ${exp2FieldNamePart}"B")
 
             @ def b(a: Sum): String = a match { case Sum(_, _) => "OK" }
             defined function b
@@ -212,9 +218,10 @@ class SparkReplTests(
     }
 
     "SPARK-2576 importing implicits" - {
+      val fieldNamePart = if (is212) "" else "value = "
       // FIXME The addOuterScope should be automatically added. (Tweak CodeClassWrapper for that?)
       sparkSession(
-        """
+        s"""
             @ import spark.implicits._
             import spark.implicits._
 
@@ -225,7 +232,7 @@ class SparkReplTests(
             res: Array[Row] = Array([1], [2], [3], [4], [5], [6], [7], [8], [9], [10])
 
             @ val foo = Seq(TestCaseClass(1)).toDS().collect()
-            foo: Array[TestCaseClass] = Array(TestCaseClass(1))
+            foo: Array[TestCaseClass] = Array(TestCaseClass(${fieldNamePart}1))
         """
       )
     }
@@ -267,8 +274,9 @@ class SparkReplTests(
     }
 
     "SPARK-2632 importing a method from non serializable class and not using it" - {
+      val fieldNamePart = if (is212) "" else "value = "
       sparkSession(
-        """
+        s"""
             @ class TestClass() { def testMethod = 3; override def toString = "TestClass" }
             defined class TestClass
 
@@ -283,55 +291,57 @@ class SparkReplTests(
 
             @ val res = sc.parallelize(1 to 10).map(x => TestCaseClass(x)).collect()
             res: Array[TestCaseClass] = Array(
-              TestCaseClass(1),
-              TestCaseClass(2),
-              TestCaseClass(3),
-              TestCaseClass(4),
-              TestCaseClass(5),
-              TestCaseClass(6),
-              TestCaseClass(7),
-              TestCaseClass(8),
-              TestCaseClass(9),
-              TestCaseClass(10)
+              TestCaseClass(${fieldNamePart}1),
+              TestCaseClass(${fieldNamePart}2),
+              TestCaseClass(${fieldNamePart}3),
+              TestCaseClass(${fieldNamePart}4),
+              TestCaseClass(${fieldNamePart}5),
+              TestCaseClass(${fieldNamePart}6),
+              TestCaseClass(${fieldNamePart}7),
+              TestCaseClass(${fieldNamePart}8),
+              TestCaseClass(${fieldNamePart}9),
+              TestCaseClass(${fieldNamePart}10)
             )
         """
       )
     }
 
     "collecting objects of class defined in repl" - {
+      val fieldNamePart = if (is212) "" else "i = "
       sparkSession(
-        """
+        s"""
             @ case class Foo(i: Int)
             defined class Foo
 
             @ val res = sc.parallelize((1 to 100).map(Foo), 10).collect()
             res: Array[Foo] = Array(
-              Foo(1),
-              Foo(2),
-              Foo(3),
-              Foo(4),
-              Foo(5),
-              Foo(6),
-              Foo(7),
-              Foo(8),
-              Foo(9),
-              Foo(10),
+              Foo(${fieldNamePart}1),
+              Foo(${fieldNamePart}2),
+              Foo(${fieldNamePart}3),
+              Foo(${fieldNamePart}4),
+              Foo(${fieldNamePart}5),
+              Foo(${fieldNamePart}6),
+              Foo(${fieldNamePart}7),
+              Foo(${fieldNamePart}8),
+              Foo(${fieldNamePart}9),
+              Foo(${fieldNamePart}10),
             ...
         """
       )
     }
 
     "collecting objects of class defined in repl - shuffling" - {
+      val fieldNamePart = if (is212) "" else "i = "
       sparkSession(
-        """
+        s"""
             @ case class Foo(i: Int)
             defined class Foo
 
             @ val list = List((1, Foo(1)), (1, Foo(2)))
-            list: List[(Int, Foo)] = List((1, Foo(1)), (1, Foo(2)))
+            list: List[(Int, Foo)] = List((1, Foo(${fieldNamePart}1)), (1, Foo(${fieldNamePart}2)))
 
             @ val res = sc.parallelize(list).groupByKey().collect().map { case (k, v) => k -> v.toList }
-            res: Array[(Int, List[Foo])] = Array((1, List(Foo(1), Foo(2))))
+            res: Array[(Int, List[Foo])] = Array((1, List(Foo(${fieldNamePart}1), Foo(${fieldNamePart}2))))
         """
       )
     }
@@ -420,8 +430,9 @@ class SparkReplTests(
 
     // Adapted from https://github.com/apache/spark/blob/3d5c61e5fd24f07302e39b5d61294da79aa0c2f9/repl/src/test/scala/org/apache/spark/repl/ReplSuite.scala#L193-L208
     "line wrapper only initialized once when used as encoder outer scope" - {
+      val fieldNamePart = if (is212) "" else "value = "
       sparkSession(
-        """
+        s"""
             @ val fileName = "repl-test-" + java.util.UUID.randomUUID()
 
             @ val tmpDir = System.getProperty("java.io.tmpdir")
@@ -444,16 +455,16 @@ class SparkReplTests(
 
             @ val res = sc.parallelize(1 to 10).map(x => TestCaseClass(x)).collect()
             res: Array[TestCaseClass] = Array(
-              TestCaseClass(1),
-              TestCaseClass(2),
-              TestCaseClass(3),
-              TestCaseClass(4),
-              TestCaseClass(5),
-              TestCaseClass(6),
-              TestCaseClass(7),
-              TestCaseClass(8),
-              TestCaseClass(9),
-              TestCaseClass(10)
+              TestCaseClass(${fieldNamePart}1),
+              TestCaseClass(${fieldNamePart}2),
+              TestCaseClass(${fieldNamePart}3),
+              TestCaseClass(${fieldNamePart}4),
+              TestCaseClass(${fieldNamePart}5),
+              TestCaseClass(${fieldNamePart}6),
+              TestCaseClass(${fieldNamePart}7),
+              TestCaseClass(${fieldNamePart}8),
+              TestCaseClass(${fieldNamePart}9),
+              TestCaseClass(${fieldNamePart}10)
             )
 
             @ val exists2 = file.exists()
