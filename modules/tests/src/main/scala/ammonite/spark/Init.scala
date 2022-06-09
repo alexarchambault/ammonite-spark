@@ -47,7 +47,7 @@ object Init {
             @     .toVector
             @     .filter(f => !f.getFileName.toString.startsWith("scala-compiler") && !f.getFileName.toString.startsWith("scala-reflect") && !f.getFileName.toString.startsWith("scala-library") && !f.getFileName.toString.startsWith("spark-repl_"))
             @     .sortBy(_.getFileName.toString)
-            @     .map(ammonite.ops.Path(_))
+            @     .map(os.Path(_))
             @ }
 """ ++ init(master, sparkVersion, conf, loadSparkSql = false)
 

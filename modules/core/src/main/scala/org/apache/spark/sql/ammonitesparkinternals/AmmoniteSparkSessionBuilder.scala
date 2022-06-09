@@ -298,7 +298,7 @@ class AmmoniteSparkSessionBuilder
           )
         case Some(dir) =>
           println(s"Adding Hadoop conf dir ${AmmoniteSparkSessionBuilder.prettyDir(dir)} to classpath")
-          interpApi.load.cp(ammonite.ops.Path(dir))
+          interpApi.load.cp(os.Path(dir))
       }
     }
 
@@ -311,7 +311,7 @@ class AmmoniteSparkSessionBuilder
           println("Warning: hive-site.xml not found in the classpath, and no Hive conf found via HIVE_CONF_DIR")
         case Some(dir) =>
           println(s"Adding Hive conf dir ${AmmoniteSparkSessionBuilder.prettyDir(dir)} to classpath")
-          interpApi.load.cp(ammonite.ops.Path(dir))
+          interpApi.load.cp(os.Path(dir))
       }
     }
 
