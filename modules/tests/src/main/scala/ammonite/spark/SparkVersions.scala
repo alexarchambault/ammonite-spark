@@ -7,5 +7,6 @@ object SparkVersions {
   def latest23 = "2.3.2"
   def latest24 = "2.4.4"
   def latest30 = "3.0.0"
+  def latest32 = "3.2.0"
 
 }
