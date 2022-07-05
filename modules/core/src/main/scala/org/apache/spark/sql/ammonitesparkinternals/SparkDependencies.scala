@@ -98,8 +98,10 @@ object SparkDependencies {
         "20"
       case Array("2", n) if Try(n.toInt).toOption.exists(_ >= 4) =>
         "24"
-      case Array("3", n) =>
+      case Array("3", n) if Try(n.toInt).toOption.exists(_ <= 1) =>
         "30"
+      case Array("3", n) =>
+        "32"
       case _ =>
         System.err.println(s"Warning: unrecognized Spark version ($sv), assuming 2.4.x")
         "24"

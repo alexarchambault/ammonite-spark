@@ -20,7 +20,7 @@ lazy val `spark-stubs_24` = project
   .underModules
   .settings(
     shared,
-    libraryDependencies += Deps.sparkSql % Provided
+    libraryDependencies += Deps.sparkSql.value % Provided
   )
 
 lazy val `spark-stubs_30` = project
@@ -31,16 +31,26 @@ lazy val `spark-stubs_30` = project
     libraryDependencies += Deps.sparkSql3 % Provided
   )
 
+lazy val `spark-stubs_32` = project
+  .disablePlugins(MimaPlugin)
+  .underModules
+  .settings(
+    shared,
+    crossScalaVersions += Deps.Scala.scala213,
+    libraryDependencies += Deps.sparkSql32 % Provided
+  )
+
 lazy val core = project
   .in(file("modules/core"))
   .settings(
     shared,
+    crossScalaVersions += Deps.Scala.scala213,
     name := "ammonite-spark",
     Mima.settings,
     generatePropertyFile("org/apache/spark/sql/ammonitesparkinternals/ammonite-spark.properties"),
     libraryDependencies ++= Seq(
       Deps.ammoniteReplApi % Provided,
-      Deps.sparkSql % Provided,
+      Deps.sparkSql.value % Provided,
       Deps.jettyServer
     )
   )
@@ -50,7 +60,8 @@ lazy val tests = project
   .underModules
   .settings(
     shared,
-    (publish / skip) := true,
+    crossScalaVersions += Deps.Scala.scala213,
+    skip.in(publish) := true,
     generatePropertyFile("ammonite/ammonite-spark.properties"),
     generateDependenciesFile,
     testSettings,
@@ -87,7 +98,8 @@ lazy val `yarn-tests` = project
   .underModules
   .settings(
     shared,
-    (publish / skip) := true,
+    crossScalaVersions += Deps.Scala.scala213,
+    skip.in(publish) := true,
     testSettings
   )
 
@@ -107,6 +119,7 @@ lazy val `ammonite-spark` = (file(".") / project
     core,
     `spark-stubs_24`,
     `spark-stubs_30`,
+    `spark-stubs_32`,
     tests
   )
   .settings(

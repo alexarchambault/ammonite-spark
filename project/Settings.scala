@@ -15,11 +15,9 @@ object Settings {
     }
   }
 
-  private val scala212 = "2.12.11"
-
   lazy val shared = Seq(
-    scalaVersion := scala212,
-    crossScalaVersions := Seq(scala212),
+    scalaVersion := Deps.Scala.scala212,
+    crossScalaVersions := Seq(Deps.Scala.scala212),
     scalacOptions ++= Seq(
       "-deprecation",
       "-feature",

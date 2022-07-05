@@ -4,7 +4,6 @@ import ammonite.compiler.CodeClassWrapper
 import ammonite.compiler.iface.CodeWrapper
 import ammonite.interp.Interpreter
 import ammonite.main.Defaults
-import ammonite.ops.{Path, read}
 import ammonite.repl._
 import ammonite.repl.api.{FrontEnd, History, ReplLoad}
 import ammonite.runtime.{Frame, ImportHook, Storage}
@@ -20,10 +19,10 @@ import scala.collection.mutable
  */
 class TestRepl {
   var allOutput = ""
-  def predef: (String, Option[ammonite.ops.Path]) = ("", None)
+  def predef: (String, Option[os.Path]) = ("", None)
   def codeWrapper: CodeWrapper = CodeClassWrapper
 
-  val tempDir = ammonite.ops.Path(
+  val tempDir = os.Path(
     java.nio.file.Files.createTempDirectory("ammonite-tester")
   )
 
@@ -61,7 +60,7 @@ class TestRepl {
       parser = ammonite.compiler.Parsers,
       printer = printer0,
       storage = storage,
-      wd = ammonite.ops.pwd,
+      wd = os.pwd,
       colors = Ref(Colors.BlackWhite),
       verboseOutput = true,
       getFrame = () => frames().head,
@@ -112,9 +111,9 @@ class TestRepl {
           }
         }
 
-        def exec(file: Path): Unit = {
+        def exec(file: os.Path): Unit = {
           interp.watch(file)
-          apply(normalizeNewlines(read(file)))
+          apply(normalizeNewlines(os.read(file)))
         }
       }
     }
