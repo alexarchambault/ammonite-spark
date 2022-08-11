@@ -10,13 +10,13 @@ object Deps {
     def scala213 = "2.13.8"
   }
 
-  private def ammoniteVersion = "2.5.4-11-4f5bf2aa"
+  private def ammoniteVersion = "2.5.4-13-1ebd00a6"
   def ammoniteCompiler = ("com.lihaoyi" % "ammonite-compiler" % ammoniteVersion).cross(CrossVersion.full)
   def ammoniteReplApi = ("com.lihaoyi" % "ammonite-repl-api" % ammoniteVersion).cross(CrossVersion.full)
   def ammoniteRepl = ("com.lihaoyi" % "ammonite-repl" % ammoniteVersion).cross(CrossVersion.full)
 
   def jettyServer = "org.eclipse.jetty" % "jetty-server" % "11.0.11"
-  def utest = "com.lihaoyi" %% "utest" % "0.7.11"
+  def utest = "com.lihaoyi" %% "utest" % "0.8.0"
 
   def sparkSql = setting {
     val sv = scalaVersion.value
