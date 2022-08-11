@@ -113,8 +113,9 @@ lazy val `yarn-spark-distrib-tests` = project
     testSettings
   )
 
-lazy val `ammonite-spark` = (file(".") / project
-  .disablePlugins(MimaPlugin))
+lazy val `ammonite-spark` = project
+  .in(file("."))
+  .disablePlugins(MimaPlugin)
   .aggregate(
     core,
     `spark-stubs_24`,
