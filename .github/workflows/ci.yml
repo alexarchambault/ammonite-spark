@@ -24,14 +24,13 @@ jobs:
       with:
         fetch-depth: 0
         submodules: true
-    - uses: coursier/cache-action@v5
+    - uses: coursier/cache-action@v6.3.2
       with:
         extraFiles: "[\".github/scripts/*\", \".github/workflows/ci.yml\", \"*.sh\"]"
         extraKey: test-${{ matrix.MASTER }}
-    - uses: laughedelic/coursier-setup@v1
+    - uses: coursier/setup-action@v1.2.0
       with:
         jvm: 8
-        apps: sbt-launcher
     - run: .github/scripts/test.sh
       shell: bash
       env:
@@ -55,15 +54,14 @@ jobs:
       with:
         fetch-depth: 0
         submodules: true
-    - uses: coursier/cache-action@v5
+    - uses: coursier/cache-action@v6.3.2
       with:
         extraFiles: "[\".github/scripts/*\", \".github/workflows/ci.yml\", \"*.sh\"]"
         extraKey: "release"
-    - uses: laughedelic/coursier-setup@v1
+    - uses: coursier/setup-action@v1.2.0
       with:
         jvm: 8
-        apps: sbt-launcher
-    - run: sbt ci-release
+    - run: ./sbt ci-release
       shell: bash
       env:
         PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
