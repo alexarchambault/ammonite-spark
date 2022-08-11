@@ -15,6 +15,8 @@ inThisBuild(List(
   )
 ))
 
+ThisBuild / evictionErrorLevel := Level.Info
+
 lazy val `spark-stubs_24` = project
   .disablePlugins(MimaPlugin)
   .underModules
