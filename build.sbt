@@ -15,6 +15,8 @@ inThisBuild(List(
   )
 ))
 
+ThisBuild / evictionErrorLevel := Level.Info
+
 lazy val `spark-stubs_24` = project
   .disablePlugins(MimaPlugin)
   .underModules
@@ -61,7 +63,7 @@ lazy val tests = project
   .settings(
     shared,
     crossScalaVersions += Deps.Scala.scala213,
-    skip.in(publish) := true,
+    (publish / skip) := true,
     generatePropertyFile("ammonite/ammonite-spark.properties"),
     generateDependenciesFile,
     testSettings,
@@ -78,7 +80,7 @@ lazy val `local-spark-distrib-tests` = project
   .underModules
   .settings(
     shared,
-    skip.in(publish) := true,
+    (publish / skip) := true,
     testSettings
   )
 
@@ -88,7 +90,7 @@ lazy val `standalone-tests` = project
   .underModules
   .settings(
     shared,
-    skip.in(publish) := true,
+    (publish / skip) := true,
     testSettings
   )
 
@@ -99,7 +101,7 @@ lazy val `yarn-tests` = project
   .settings(
     shared,
     crossScalaVersions += Deps.Scala.scala213,
-    skip.in(publish) := true,
+    (publish / skip) := true,
     testSettings
   )
 
@@ -109,13 +111,13 @@ lazy val `yarn-spark-distrib-tests` = project
   .underModules
   .settings(
     shared,
-    skip.in(publish) := true,
+    (publish / skip) := true,
     testSettings
   )
 
 lazy val `ammonite-spark` = project
-  .disablePlugins(MimaPlugin)
   .in(file("."))
+  .disablePlugins(MimaPlugin)
   .aggregate(
     core,
     `spark-stubs_24`,
@@ -125,5 +127,5 @@ lazy val `ammonite-spark` = project
   )
   .settings(
     crossScalaVersions := Nil,
-    skip.in(publish) := true
+    (publish / skip) := true
   )
