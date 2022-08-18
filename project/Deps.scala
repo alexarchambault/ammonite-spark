@@ -10,7 +10,7 @@ object Deps {
     def scala213 = "2.13.8"
   }
 
-  private def ammoniteVersion = "2.5.4-14-dc4c47bc"
+  private def ammoniteVersion = "2.5.4-15-f4a8969b"
   def ammoniteCompiler = ("com.lihaoyi" % "ammonite-compiler" % ammoniteVersion).cross(CrossVersion.full)
   def ammoniteReplApi = ("com.lihaoyi" % "ammonite-repl-api" % ammoniteVersion).cross(CrossVersion.full)
   def ammoniteRepl = ("com.lihaoyi" % "ammonite-repl" % ammoniteVersion).cross(CrossVersion.full)
