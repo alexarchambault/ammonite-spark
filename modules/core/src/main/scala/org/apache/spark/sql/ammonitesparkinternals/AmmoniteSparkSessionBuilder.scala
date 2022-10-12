@@ -1,7 +1,7 @@
 package org.apache.spark.sql.ammonitesparkinternals
 
 import java.io.File
-import java.net.{InetAddress, URI, URL}
+import java.net.{InetAddress, URI, URL, URLClassLoader}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
@@ -92,6 +92,16 @@ object AmmoniteSparkSessionBuilder {
           false
       }
     }
+
+  def userAddedClassPath(cl: ClassLoader): Stream[Seq[URL]] =
+    if (cl == null) Stream.empty
+    else
+      cl match {
+        case cl: URLClassLoader if cl.getClass.getName == "ammonite.runtime.SpecialClassLoader" =>
+          cl.getURLs.toSeq #:: userAddedClassPath(cl.getParent)
+        case _ =>
+          Stream.empty
+      }
 
 }
 
@@ -202,30 +212,54 @@ class AmmoniteSparkSessionBuilder
 
     loadExtraDependencies()
 
-    val sessionJars =
-      replApi
-        .sess
-        .frames
-        .flatMap(_.classpath)
-        .filter(AmmoniteSparkSessionBuilder.shouldPassToSpark)
-        .map(_.toURI)
+    val (sessionJars, cp) = Option(replApi) match {
+      case None =>
 
-    val baseJars = {
-      val cp = AmmoniteSparkSessionBuilder.classpath(
-        replApi
+        def firstNonSpecialClassLoader(cl: ClassLoader): Option[ClassLoader] =
+          if (cl == null)
+            None
+          else if (cl.getClass.getName == "ammonite.runtime.SpecialClassLoader")
+            firstNonSpecialClassLoader(cl.getParent)
+          else
+            Some(cl)
+
+        val cl = Thread.currentThread().getContextClassLoader
+
+        val sessionJars0 = AmmoniteSparkSessionBuilder.userAddedClassPath(cl).toVector.flatten
+          .filter(AmmoniteSparkSessionBuilder.shouldPassToSpark)
+          .map(_.toURI)
+
+        val firstNonSpecialClassLoader0 = firstNonSpecialClassLoader(cl).getOrElse(???)
+        val cp = AmmoniteSparkSessionBuilder.classpath(firstNonSpecialClassLoader0)
+
+        (sessionJars0, cp)
+
+      case Some(replApi0) =>
+
+        val sessionJars0 = replApi0
           .sess
           .frames
-          .last
-          .classloader
-          .getParent
-      )
+          .flatMap(_.classpath)
+          .filter(AmmoniteSparkSessionBuilder.shouldPassToSpark)
+          .map(_.toURI)
 
-      cp
-        .map(_.toURI)
-        // assuming the JDK on the YARN machines already have those
-        .filter(u => !AmmoniteSparkSessionBuilder.isJdkJar(u))
-        .toVector
+        val cp = AmmoniteSparkSessionBuilder.classpath(
+          replApi0
+            .sess
+            .frames
+            .last
+            .classloader
+            .getParent
+        )
+
+        (sessionJars0, cp)
     }
+
+    val baseJars = cp
+      .map(_.toURI)
+      // assuming the JDK on the YARN machines already have those
+      .filter(u => !AmmoniteSparkSessionBuilder.isJdkJar(u))
+      .toVector
 
     val jars = (baseJars ++ sessionJars).distinct
 

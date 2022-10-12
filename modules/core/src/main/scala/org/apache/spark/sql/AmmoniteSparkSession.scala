@@ -64,7 +64,12 @@ object AmmoniteSparkSession {
       session0.sparkContext.conf.get("spark.yarn.jars", "").split(',').filter(_.nonEmpty).toSet ++
         session0.sparkContext.conf.get("spark.jars", "").split(',').filter(_.nonEmpty)
 
-    val cp = replApi.sess.frames.flatMap(_.classpath)
+    val cp =
+      if (replApi == null)
+        AmmoniteSparkSessionBuilder.userAddedClassPath(Thread.currentThread().getContextClassLoader)
+          .toVector.flatten
+      else
+        replApi.sess.frames.flatMap(_.classpath)
 
     for {
       f <- cp.filter(AmmoniteSparkSessionBuilder.shouldPassToSpark)
