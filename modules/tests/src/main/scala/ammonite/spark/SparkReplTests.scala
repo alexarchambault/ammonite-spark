@@ -17,18 +17,34 @@ class SparkReplTests(
 
   Init.setupLog4j()
 
-  val check = new TestRepl
+  val check: TestRepl = new TestRepl {
+    override def predef =
+      if (initFromPredef)
+        (Init.scriptInit(master, sparkVersion, conf), None)
+      else
+        ("", None)
+  }
 
   def sparkHomeBased: Boolean =
     false
+  def initFromPredef: Boolean =
+    false
+
+  Predef.assert(
+    !sparkHomeBased || !initFromPredef,
+    "Can't have both sparkHomeBased and initFromPredef"
+  )
 
   def init =
-    if (sparkHomeBased)
+    if (initFromPredef)
+      ""
+    else if (sparkHomeBased)
       Init.sparkHomeInit(master, sparkVersion, conf)
     else
       Init.init(master, sparkVersion, conf)
 
-  check.session(init)
+  if (init.nonEmpty)
+    check.session(init)
 
   override def utestAfterAll() =
     check.session(Init.end)
