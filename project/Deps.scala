@@ -7,7 +7,7 @@ object Deps {
 
   object Scala {
     def scala212 = "2.12.11"
-    def scala213 = "2.13.8"
+    def scala213 = "2.13.10"
   }
 
   private def ammoniteVersion = "2.5.4-35-ebdeebe4"
