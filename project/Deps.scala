@@ -6,7 +6,7 @@ import sbt.Keys._
 object Deps {
 
   object Scala {
-    def scala212 = "2.12.11"
+    def scala212 = "2.12.17"
     def scala213 = "2.13.10"
   }
 
