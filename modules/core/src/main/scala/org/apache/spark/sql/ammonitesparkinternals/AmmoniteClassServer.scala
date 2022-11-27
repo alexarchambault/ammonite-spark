@@ -63,7 +63,17 @@ final class AmmoniteClassServer(host: String, bindTo: String, port: Int, frames:
   def stop(): Unit =
     server.stop()
 
-  def uri = new URI(s"http://$host:$port")
+  def uri = {
+    val sparkBinaryVersion = {
+      org.apache.spark.SPARK_VERSION
+        .split('.')
+        .take(2)
+        .mkString("")
+        .toInt
+    }
+    val uriStr = if (sparkBinaryVersion >= 32) s"http://$host:$port/" else s"http://$host:$port"
+    new URI(uriStr)
+  }
 
 }
 
