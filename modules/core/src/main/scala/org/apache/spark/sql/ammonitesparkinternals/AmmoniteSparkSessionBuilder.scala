@@ -303,7 +303,7 @@ class AmmoniteSparkSessionBuilder
     )
     classServerOpt = Some(classServer)
 
-    config("spark.repl.class.uri", classServer.uri.toString)
+    config("spark.repl.class.uri", s"${classServer.uri.toString}/")
 
     if (!options0.contains("spark.ui.port"))
       config("spark.ui.port", AmmoniteClassServer.availablePortFrom(4040).toString)
