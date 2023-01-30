@@ -64,7 +64,7 @@ jobs:
     - run: ./sbt ci-release
       shell: bash
       env:
-        PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
-        PGP_SECRET: ${{ secrets.PGP_SECRET }}
-        SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
-        SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
+        PGP_PASSPHRASE: ${{ secrets.PUBLISH_SECRET_KEY_PASSWORD }}
+        PGP_SECRET: ${{ secrets.PUBLISH_SECRET_KEY }}
+        SONATYPE_PASSWORD: ${{ secrets.PUBLISH_PASSWORD }}
+        SONATYPE_USERNAME: ${{ secrets.PUBLISH_USER }}
