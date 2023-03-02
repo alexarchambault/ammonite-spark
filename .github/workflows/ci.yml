@@ -61,6 +61,9 @@ jobs:
     - uses: coursier/setup-action@v1.2.0
       with:
         jvm: 8
+    - run: .github/scripts/gpg-setup.sh
+      env:
+        PGP_SECRET: ${{ secrets.PUBLISH_SECRET_KEY }}
     - run: ./sbt ci-release
       shell: bash
       env:
