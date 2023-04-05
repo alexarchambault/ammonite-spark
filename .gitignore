@@ -4,3 +4,7 @@ notebooks/
 secure/
 *.log
 *.log.?
+.bloop/
+.metals/
+.vscode/
+metals.sbt
