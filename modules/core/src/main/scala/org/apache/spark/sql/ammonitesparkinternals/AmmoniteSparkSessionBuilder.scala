@@ -5,8 +5,8 @@ import java.net.{InetAddress, URI, URL, URLClassLoader}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
-import ammonite.repl.api.ReplAPI
 import ammonite.interp.api.InterpAPI
+import ammonite.repl.api.ReplAPI
 import coursierapi.Dependency
 import org.apache.spark.SparkContext
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
