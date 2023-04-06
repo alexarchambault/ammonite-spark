@@ -295,15 +295,26 @@ class AmmoniteSparkSessionBuilder
 
     config("spark.jars", jars.filterNot(sparkJars.toSet).map(_.toASCIIString).mkString(","))
 
-    val classServer = new AmmoniteClassServer(
-      host(),
-      bindAddress(),
-      options0.get("spark.repl.class.port").fold(AmmoniteClassServer.randomPort())(_.toInt),
-      replApi.sess.frames
-    )
-    classServerOpt = Some(classServer)
+    interpApi._compilerManager.outputDir match {
+      case None =>
+        val classServer = new AmmoniteClassServer(
+          host(),
+          bindAddress(),
+          options0.get("spark.repl.class.port").fold(AmmoniteClassServer.randomPort())(_.toInt),
+          replApi.sess.frames
+        )
+        classServerOpt = Some(classServer)
 
-    config("spark.repl.class.uri", classServer.uri.toString)
+        config("spark.repl.class.uri", classServer.uri.toString)
+
+        System.err.println(
+          "Warning: Ammonite output directory not specified upon launch. " +
+          "Relying on the spark.repl.class.uri property, which might have issues in tight network environments."
+        )
+
+      case Some(outputDir) =>
+        config("spark.repl.class.outputDir", outputDir.toAbsolutePath.toString)
+    }
 
     if (!options0.contains("spark.ui.port"))
       config("spark.ui.port", AmmoniteClassServer.availablePortFrom(4040).toString)
