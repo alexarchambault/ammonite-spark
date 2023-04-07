@@ -54,20 +54,25 @@ class TestRepl {
   val sess0 = new SessionApiImpl(frames)
 
   var currentLine = 0
+  val interpParams = Interpreter.Parameters(
+    printer = printer0,
+    storage = storage,
+    wd = os.pwd,
+    colors = Ref(Colors.BlackWhite),
+    verboseOutput = true,
+    alreadyLoadedDependencies = Defaults.alreadyLoadedDependencies("ammonite/spark/amm-test-dependencies.txt")
+  )
   val interp = try {
     new Interpreter(
-      compilerBuilder = ammonite.compiler.CompilerBuilder,
-      parser = ammonite.compiler.Parsers,
-      printer = printer0,
-      storage = storage,
-      wd = os.pwd,
-      colors = Ref(Colors.BlackWhite),
-      verboseOutput = true,
+      compilerBuilder = ammonite.compiler.CompilerBuilder(
+        outputDir = Some(os.temp.dir(prefix = "amm-spark-tests").toNIO)
+      ),
+      parser = () => ammonite.compiler.Parsers,
       getFrame = () => frames().head,
       createFrame = () => { val f = sess0.childFrame(frames().head); frames() = f :: frames(); f },
       replCodeWrapper = codeWrapper,
       scriptCodeWrapper = codeWrapper,
-      alreadyLoadedDependencies = Defaults.alreadyLoadedDependencies("ammonite/spark/amm-test-dependencies.txt")
+      parameters = interpParams
     )
 
   }catch{ case e: Throwable =>
