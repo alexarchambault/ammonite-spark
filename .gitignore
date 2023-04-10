@@ -1,4 +1,3 @@
-target/
 .bsp/
 notebooks/
 secure/
@@ -7,4 +6,4 @@ secure/
 .bloop/
 .metals/
 .vscode/
-metals.sbt
+out/

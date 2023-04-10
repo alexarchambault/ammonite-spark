@@ -3,9 +3,9 @@ set -eu
 
 # when the tests are running, open the YARN UI at http://localhost:8088
 
-INTERACTIVE=1
-if [ "$1" = -batch ]; then
-  INTERACTIVE=0
+INTERACTIVE=0
+if [ -t 1 ]; then
+  INTERACTIVE=1
   shift
 fi
 
@@ -35,8 +35,8 @@ if [ ! -x "$CACHE/coursier" ]; then
   chmod +x "$CACHE/coursier"
 fi
 
-cp sbt "$CACHE/sbt"
-chmod +x "$CACHE/sbt"
+cp mill "$CACHE/mill"
+chmod +x "$CACHE/mill"
 
 if ! docker network inspect "$NETWORK" >/dev/null 2>&1; then
   docker network create "$NETWORK"
@@ -118,7 +118,7 @@ set -e
 if [ "\$SPARK_HOME" = "" ]; then
   # prefetch stuff
 
-  for SPARK_VERSION in "2.4.4" "3.0.0-preview"; do
+  for SPARK_VERSION in "2.4.4" "3.0.0"; do
 
     DEPS=()
     DEPS+=("org.apache.spark:spark-sql_$SBV:\$SPARK_VERSION")
@@ -133,7 +133,11 @@ fi
 
 $(if [ "$INTERACTIVE" = 0 ]; then echo "export CI=true"; fi)
 
-exec sbt $(if [ "$INTERACTIVE" = 0 ]; then echo "-batch"; fi) -J-Xmx1g "\$@"
+cat > .mill-jvm-opts << FOO
+-Xmx1g
+FOO
+
+exec mill -i "\$@"
 EOF
 
 chmod +x "$CACHE/run.sh"
@@ -143,10 +147,10 @@ docker run -t $(if [ "$INTERACTIVE" = 1 ]; then echo -i; fi) --rm \
   --network "$NETWORK" \
   -p 4040:4040 \
   -v "$CACHE/coursier:/usr/local/bin/coursier" \
-  -v "$CACHE/sbt:/usr/local/bin/sbt" \
+  -v "$CACHE/mill:/usr/local/bin/mill" \
   -v "$CACHE/run.sh:/usr/local/bin/run.sh" \
   -v "$CACHE/cache:/root/.cache" \
-  -v "$CACHE/sbt-home:/root/.sbt" \
+  -v "$CACHE/mill-home:/root/.mill" \
   -v "$CACHE/ivy2-home:/root/.ivy2" \
   -v "$CACHE/hadoop-conf:/etc/hadoop/conf" \
   -v "$(pwd):/workspace" \

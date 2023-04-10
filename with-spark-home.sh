@@ -9,10 +9,7 @@ BASE="$(dirname "${BASH_SOURCE[0]}")"
 CACHE="${STANDALONE_CACHE:-"$BASE/target/standalone"}"
 mkdir -p "$CACHE"
 
-if ! ls modules/spark-stubs_24/target/scala-2.12/spark-stubs_24_2.12-*.jar >/dev/null 2>&1; then
-  ./sbt spark-stubs_24/packageBin
-fi
-SPARK_STUBS_JAR="$(ls "$(pwd)/modules/spark-stubs_24/target/scala-2.12/spark-stubs_24_2.12-"*.jar)"
+SPARK_STUBS_JAR="$(./mill show 'spark-stubs_24.jar' | jq -r . | sed 's/ref:[a-f0-9]*://')"
 
 # Fetch spark distrib
 if [ ! -d "$CACHE/spark-$SPARK_VERSION-"* ]; then
