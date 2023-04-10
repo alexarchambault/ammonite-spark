@@ -24,7 +24,7 @@ jobs:
       with:
         fetch-depth: 0
         submodules: true
-    - uses: coursier/cache-action@v6.3.2
+    - uses: coursier/cache-action@v6.4.3
       with:
         extraFiles: "[\".github/scripts/*\", \".github/workflows/ci.yml\", \"*.sh\"]"
         extraKey: test-${{ matrix.MASTER }}
@@ -68,7 +68,7 @@ jobs:
       with:
         fetch-depth: 0
         submodules: true
-    - uses: coursier/cache-action@v6.3.2
+    - uses: coursier/cache-action@v6.4.3
       with:
         extraFiles: "[\".github/scripts/*\", \".github/workflows/ci.yml\", \"*.sh\"]"
         extraKey: "release"
