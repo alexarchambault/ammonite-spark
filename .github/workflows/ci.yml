@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        MASTER: ["local", "standalone", "yarn"]
+        MASTER: ["local", "standalone", "yarn", "local-distrib", "yarn-distrib"]
     steps:
     - name: Don't convert LF to CRLF during checkout
       if: runner.os == 'Windows'
