@@ -64,7 +64,7 @@ jobs:
     - run: .github/scripts/gpg-setup.sh
       env:
         PGP_SECRET: ${{ secrets.PUBLISH_SECRET_KEY }}
-    - run: ./sbt ci-release
+    - run: ./mill -i io.kipp.mill.ci.release.ReleaseModule/publishAll
       shell: bash
       env:
         PGP_PASSPHRASE: ${{ secrets.PUBLISH_SECRET_KEY_PASSWORD }}
