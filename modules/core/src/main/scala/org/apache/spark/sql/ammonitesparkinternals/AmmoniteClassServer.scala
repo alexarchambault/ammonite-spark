@@ -14,7 +14,12 @@ final class AmmoniteClassServer(host: String, bindTo: String, port: Int, frames:
   private val socketAddress = InetSocketAddress.createUnresolved(bindTo, port)
 
   private val handler = new AbstractHandler {
-    def handle(target: String, baseRequest: Request, request: HttpServletRequest, response: HttpServletResponse): Unit = {
+    def handle(
+      target: String,
+      baseRequest: Request,
+      request: HttpServletRequest,
+      response: HttpServletResponse
+    ): Unit = {
 
       val path = target.stripPrefix("/").stripSuffix(".class")
       val item = path.replace('/', '.')
@@ -64,13 +69,12 @@ final class AmmoniteClassServer(host: String, bindTo: String, port: Int, frames:
     server.stop()
 
   def uri = {
-    val sparkBinaryVersion = {
+    val sparkBinaryVersion =
       org.apache.spark.SPARK_VERSION
         .split('.')
         .take(2)
         .mkString("")
         .toInt
-    }
     val uriStr = if (sparkBinaryVersion >= 32) s"http://$host:$port/" else s"http://$host:$port"
     new URI(uriStr)
   }
@@ -80,7 +84,7 @@ final class AmmoniteClassServer(host: String, bindTo: String, port: Int, frames:
 object AmmoniteClassServer {
 
   def randomPort(): Int = {
-    val s = new ServerSocket(0)
+    val s    = new ServerSocket(0)
     val port = s.getLocalPort
     s.close()
     port
@@ -96,9 +100,8 @@ object AmmoniteClassServer {
       case _: IOException =>
         availablePortFrom(from + 1)
     }
-    finally {
+    finally
       if (socket != null) socket.close()
-    }
   }
 
 }

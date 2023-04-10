@@ -6,20 +6,22 @@ object Properties {
 
     val p = new java.util.Properties
 
-    try {
+    try
       p.load(
         getClass
           .getClassLoader
-          .getResourceAsStream("org/apache/spark/sql/ammonitesparkinternals/ammonite-spark.properties")
+          .getResourceAsStream(
+            "org/apache/spark/sql/ammonitesparkinternals/ammonite-spark.properties"
+          )
       )
-    } catch  {
+    catch {
       case _: NullPointerException =>
     }
 
     p
   }
 
-  lazy val version = props.getProperty("version")
+  lazy val version    = props.getProperty("version")
   lazy val commitHash = props.getProperty("commit-hash")
 
 }
