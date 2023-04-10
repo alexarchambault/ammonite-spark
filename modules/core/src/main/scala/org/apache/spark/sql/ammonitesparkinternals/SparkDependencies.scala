@@ -25,7 +25,7 @@ object SparkDependencies {
       "org.apache.spark.sql.hive.HiveSessionStateBuilder"
     )
 
-  private def sparkYarnClass = "org.apache.spark.deploy.yarn.Client"
+  private def sparkYarnClass                = "org.apache.spark.deploy.yarn.Client"
   private def sparkExecutorClassLoaderClass = "org.apache.spark.repl.ExecutorClassLoader"
 
   def sparkHiveFound(): Boolean =
@@ -33,7 +33,8 @@ object SparkDependencies {
       try {
         Thread.currentThread().getContextClassLoader.loadClass(className)
         true
-      } catch {
+      }
+      catch {
         case _: ClassNotFoundException =>
           false
       }
@@ -43,7 +44,8 @@ object SparkDependencies {
     try {
       Thread.currentThread().getContextClassLoader.loadClass(sparkYarnClass)
       true
-    } catch {
+    }
+    catch {
       case _: ClassNotFoundException =>
         false
     }
@@ -52,7 +54,8 @@ object SparkDependencies {
     try {
       Thread.currentThread().getContextClassLoader.loadClass(sparkExecutorClassLoaderClass)
       true
-    } catch {
+    }
+    catch {
       case _: ClassNotFoundException =>
         false
     }
@@ -73,7 +76,8 @@ object SparkDependencies {
           try {
             cl.loadClass(h)
             b += module
-          } catch {
+          }
+          catch {
             case _: ClassNotFoundException =>
               addIfClasses(module, t)
           }
@@ -107,18 +111,24 @@ object SparkDependencies {
         "24"
     }
     Dependency.of(
-      "sh.almond", s"spark-stubs_${suffix}_$sbv", Properties.version
+      "sh.almond",
+      s"spark-stubs_${suffix}_$sbv",
+      Properties.version
     )
   }
 
   def sparkYarnDependency =
     Dependency.of(
-      "org.apache.spark", s"spark-yarn_$sbv", org.apache.spark.SPARK_VERSION
+      "org.apache.spark",
+      s"spark-yarn_$sbv",
+      org.apache.spark.SPARK_VERSION
     )
 
   def sparkHiveDependency =
     Dependency.of(
-      "org.apache.spark", s"spark-hive_$sbv", org.apache.spark.SPARK_VERSION
+      "org.apache.spark",
+      s"spark-hive_$sbv",
+      org.apache.spark.SPARK_VERSION
     )
 
   private def sparkBaseDependencies() =
@@ -131,7 +141,6 @@ object SparkDependencies {
       sparkModules().map { m =>
         Dependency.of("org.apache.spark", s"spark-${m}_$sbv", org.apache.spark.SPARK_VERSION)
       }
-
 
   def sparkJars(
     repositories: Seq[Repository],
@@ -150,7 +159,7 @@ object SparkDependencies {
       )
 
     resolutionHooks
-      .foldLeft(fetch){ case (acc, f) => f(acc) }
+      .foldLeft(fetch) { case (acc, f) => f(acc) }
       .fetch()
       .asScala
       .toVector
