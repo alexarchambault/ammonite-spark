@@ -118,7 +118,7 @@ set -e
 if [ "\$SPARK_HOME" = "" ]; then
   # prefetch stuff
 
-  for SPARK_VERSION in "2.4.4" "3.0.0-preview"; do
+  for SPARK_VERSION in "2.4.4" "3.0.0"; do
 
     DEPS=()
     DEPS+=("org.apache.spark:spark-sql_$SBV:\$SPARK_VERSION")
