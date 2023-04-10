@@ -243,3 +243,24 @@ object `yarn-spark-distrib-tests` extends SbtModule {
 
   object test extends Tests with AmmSparkTests
 }
+
+object `almond-spark` extends Cross[AlmondSpark](Versions.scala: _*)
+class AlmondSpark(val crossScalaVersion: String) extends CrossSbtModule with AmmSparkPublishModule with AmmSparkMima {
+  def moduleDeps = super.moduleDeps ++ Seq(
+    core()
+  )
+  def ivyDeps = super.ivyDeps() ++ Agg(
+    Deps.jsoniterScalaCore
+  )
+  def compileIvyDeps = super.compileIvyDeps() ++ Agg(
+    Deps.ammoniteReplApi,
+    Deps.jsoniterScalaMacros,
+    Deps.scalaKernelApi,
+    Deps.sparkSql(scalaVersion())
+  )
+  def repositoriesTask = T.task {
+    super.repositoriesTask() ++ Seq(
+      coursier.Repositories.jitpack
+    )
+  }
+}
