@@ -1,6 +1,9 @@
-target/
 .bsp/
 notebooks/
 secure/
 *.log
 *.log.?
+.bloop/
+.metals/
+.vscode/
+out/

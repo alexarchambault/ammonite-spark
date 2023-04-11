@@ -8,13 +8,13 @@ object Properties {
 
     val p = new JProperties
 
-    try {
+    try
       p.load(
         getClass
           .getClassLoader
           .getResourceAsStream("ammonite/ammonite-spark.properties")
       )
-    } catch  {
+    catch {
       case _: NullPointerException =>
     }
 

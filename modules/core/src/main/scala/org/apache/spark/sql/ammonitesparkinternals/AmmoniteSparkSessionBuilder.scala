@@ -5,8 +5,8 @@ import java.net.{InetAddress, URI, URL, URLClassLoader}
 import java.nio.charset.StandardCharsets
 import java.nio.file.{Files, Paths}
 
-import ammonite.repl.api.ReplAPI
 import ammonite.interp.api.InterpAPI
+import ammonite.repl.api.ReplAPI
 import coursierapi.Dependency
 import org.apache.spark.SparkContext
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
@@ -54,23 +54,28 @@ object AmmoniteSparkSessionBuilder {
     isJarFile || isJarInJar
   }
 
-  def classpath(cl: ClassLoader): Stream[java.net.URL] = {
+  def classpath(cl: ClassLoader): Stream[java.net.URL] =
     if (cl == null)
       Stream()
     else {
       val cp = cl match {
         case u: java.net.URLClassLoader => u.getURLs.toStream
-        case _ => Stream()
+        case _                          => Stream()
       }
 
       cp #::: classpath(cl.getParent)
     }
-  }
 
   private lazy val javaDirs = {
     val l = Seq(sys.props("java.home")) ++
-      sys.props.get("java.ext.dirs").toSeq.flatMap(_.split(File.pathSeparator)).filter(_.nonEmpty) ++
-      sys.props.get("java.endorsed.dirs").toSeq.flatMap(_.split(File.pathSeparator)).filter(_.nonEmpty)
+      sys.props.get("java.ext.dirs")
+        .toSeq
+        .flatMap(_.split(File.pathSeparator))
+        .filter(_.nonEmpty) ++
+      sys.props.get("java.endorsed.dirs")
+        .toSeq
+        .flatMap(_.split(File.pathSeparator))
+        .filter(_.nonEmpty)
     l.map(_.stripSuffix("/") + "/")
   }
 
@@ -83,11 +88,16 @@ object AmmoniteSparkSessionBuilder {
   def forceProgressBars(sc: SparkContext): Boolean =
     sc.progressBar.nonEmpty || {
       try {
-        val method = classOf[org.apache.spark.SparkContext].getDeclaredMethod("org$apache$spark$SparkContext$$_progressBar_$eq", classOf[Option[Any]])
+        val method = classOf[org.apache.spark.SparkContext]
+          .getDeclaredMethod(
+            "org$apache$spark$SparkContext$$_progressBar_$eq",
+            classOf[Option[Any]]
+          )
         method.setAccessible(true)
         method.invoke(sc, Some(new ConsoleProgressBar(sc)))
         true
-      } catch {
+      }
+      catch {
         case _: NoSuchMethodException =>
           false
       }
@@ -105,11 +115,10 @@ object AmmoniteSparkSessionBuilder {
 
 }
 
-class AmmoniteSparkSessionBuilder
- (implicit
-   interpApi: InterpAPI,
-   replApi: ReplAPI
- ) extends SparkSession.Builder {
+class AmmoniteSparkSessionBuilder(implicit
+  interpApi: InterpAPI,
+  replApi: ReplAPI
+) extends SparkSession.Builder {
 
   private val options0: scala.collection.Map[String, String] = {
 
@@ -118,7 +127,8 @@ class AmmoniteSparkSessionBuilder
         val f = classOf[SparkSession.Builder].getDeclaredField(name)
         f.setAccessible(true)
         Some(f.get(this).asInstanceOf[scala.collection.mutable.HashMap[String, String]])
-      } catch {
+      }
+      catch {
         case _: NoSuchFieldException =>
           None
       }
@@ -135,7 +145,7 @@ class AmmoniteSparkSessionBuilder
 
     for {
       envVar <- AmmoniteSparkSessionBuilder.confEnvVars
-      path <- sys.env.get(envVar)
+      path   <- sys.env.get(envVar)
     } {
       println(s"Loading spark conf from ${AmmoniteSparkSessionBuilder.prettyDir(path)}")
       loadConf(path)
@@ -214,7 +224,6 @@ class AmmoniteSparkSessionBuilder
 
     val (sessionJars, cp) = Option(replApi) match {
       case None =>
-
         def firstNonSpecialClassLoader(cl: ClassLoader): Option[ClassLoader] =
           if (cl == null)
             None
@@ -235,7 +244,6 @@ class AmmoniteSparkSessionBuilder
         (sessionJars0, cp)
 
       case Some(replApi0) =>
-
         val sessionJars0 = replApi0
           .sess
           .frames
@@ -272,8 +280,8 @@ class AmmoniteSparkSessionBuilder
         // rather than ones from the spark distribution.
         val fromBaseCp = jars.filter { f =>
           f.toASCIIString.contains("/scala-library") ||
-            f.toASCIIString.contains("/scala-reflect") ||
-            f.toASCIIString.contains("/scala-compiler")
+          f.toASCIIString.contains("/scala-reflect") ||
+          f.toASCIIString.contains("/scala-compiler")
         }
         val fromSparkDistrib = Files.list(Paths.get(sparkHome).resolve("jars"))
           .iterator()
@@ -282,8 +290,8 @@ class AmmoniteSparkSessionBuilder
           .filter { p =>
             val name = p.getFileName.toString
             !name.startsWith("scala-library-") &&
-              !name.startsWith("scala-reflect-") &&
-              !name.startsWith("scala-compiler-")
+            !name.startsWith("scala-reflect-") &&
+            !name.startsWith("scala-compiler-")
           }
           .map(_.toAbsolutePath.toUri)
 
@@ -295,15 +303,26 @@ class AmmoniteSparkSessionBuilder
 
     config("spark.jars", jars.filterNot(sparkJars.toSet).map(_.toASCIIString).mkString(","))
 
-    val classServer = new AmmoniteClassServer(
-      host(),
-      bindAddress(),
-      options0.get("spark.repl.class.port").fold(AmmoniteClassServer.randomPort())(_.toInt),
-      replApi.sess.frames
-    )
-    classServerOpt = Some(classServer)
+    interpApi._compilerManager.outputDir match {
+      case None =>
+        val classServer = new AmmoniteClassServer(
+          host(),
+          bindAddress(),
+          options0.get("spark.repl.class.port").fold(AmmoniteClassServer.randomPort())(_.toInt),
+          replApi.sess.frames
+        )
+        classServerOpt = Some(classServer)
 
-    config("spark.repl.class.uri", classServer.uri.toString)
+        config("spark.repl.class.uri", classServer.uri.toString)
+
+        System.err.println(
+          "Warning: Ammonite output directory not specified upon launch. " +
+            "Relying on the spark.repl.class.uri property, which might have issues in tight network environments."
+        )
+
+      case Some(outputDir) =>
+        config("spark.repl.class.outputDir", outputDir.toAbsolutePath.toString)
+    }
 
     if (!options0.contains("spark.ui.port"))
       config("spark.ui.port", AmmoniteClassServer.availablePortFrom(4040).toString)
@@ -331,7 +350,9 @@ class AmmoniteSparkSessionBuilder
               "YARN_CONF_DIR, or at /etc/hadoop/conf"
           )
         case Some(dir) =>
-          println(s"Adding Hadoop conf dir ${AmmoniteSparkSessionBuilder.prettyDir(dir)} to classpath")
+          println(
+            s"Adding Hadoop conf dir ${AmmoniteSparkSessionBuilder.prettyDir(dir)} to classpath"
+          )
           interpApi.load.cp(os.Path(dir))
       }
     }
@@ -342,9 +363,13 @@ class AmmoniteSparkSessionBuilder
 
       hiveConfDirOpt match {
         case None =>
-          println("Warning: hive-site.xml not found in the classpath, and no Hive conf found via HIVE_CONF_DIR")
+          println(
+            "Warning: hive-site.xml not found in the classpath, and no Hive conf found via HIVE_CONF_DIR"
+          )
         case Some(dir) =>
-          println(s"Adding Hive conf dir ${AmmoniteSparkSessionBuilder.prettyDir(dir)} to classpath")
+          println(
+            s"Adding Hive conf dir ${AmmoniteSparkSessionBuilder.prettyDir(dir)} to classpath"
+          )
           interpApi.load.cp(os.Path(dir))
       }
     }

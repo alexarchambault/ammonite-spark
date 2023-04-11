@@ -6,8 +6,7 @@ import org.apache.spark.sql.ammonitesparkinternals.AmmoniteSparkSessionBuilder
 
 object AmmoniteSparkSession {
 
-  /**
-    * In an Ammonite session, use this instead of [[SparkSession.builder()]].
+  /** In an Ammonite session, use this instead of [[SparkSession.builder()]].
     *
     * Example
     * {{{
@@ -24,16 +23,14 @@ object AmmoniteSparkSession {
     *
     * }}}
     */
-  def builder()
-   (implicit
-     interpApi: InterpAPI,
-     replApi: ReplAPI
-   ): AmmoniteSparkSessionBuilder =
+  def builder()(implicit
+    interpApi: InterpAPI,
+    replApi: ReplAPI
+  ): AmmoniteSparkSessionBuilder =
     new AmmoniteSparkSessionBuilder
 
-  /**
-    * Should be called if new dependencies were added to the session *after* the [[SparkSession]] was
-    * created.
+  /** Should be called if new dependencies were added to the session *after* the [[SparkSession]]
+    * was created.
     *
     * Example
     * {{{
@@ -50,7 +47,8 @@ object AmmoniteSparkSession {
     *
     * }}}
     *
-    * @param session: [[SparkSession]] to add new JARs to
+    * @param session:
+    *   [[SparkSession]] to add new JARs to
     */
   def sync(session: SparkSession = null)(implicit replApi: ReplAPI): SparkSession = {
 

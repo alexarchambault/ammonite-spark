@@ -66,7 +66,6 @@ class SparkReplTests(
     // Beware that indentation of the session snippets is super sensitive.
     // All snippets should have the exact same indentation.
 
-
     "simple foreach with accumulator" - {
       sparkSession(
         """
@@ -201,7 +200,7 @@ class SparkReplTests(
     }
 
     "SPARK-1199 two instances of same class don't type check" - {
-      val expFieldNamePart = if (is212) "" else "exp = "
+      val expFieldNamePart  = if (is212) "" else "exp = "
       val exp2FieldNamePart = if (is212) "" else "exp2 = "
       sparkSession(
         s"""
@@ -209,7 +208,7 @@ class SparkReplTests(
             defined class Sum
 
             @ val a = Sum("A", "B")
-            a: Sum = Sum(${expFieldNamePart}"A", ${exp2FieldNamePart}"B")
+            a: Sum = Sum($expFieldNamePart"A", $exp2FieldNamePart"B")
 
             @ def b(a: Sum): String = a match { case Sum(_, _) => "OK" }
             defined function b
@@ -442,7 +441,6 @@ class SparkReplTests(
         """
       )
     }
-
 
     // Adapted from https://github.com/apache/spark/blob/3d5c61e5fd24f07302e39b5d61294da79aa0c2f9/repl/src/test/scala/org/apache/spark/repl/ReplSuite.scala#L193-L208
     "line wrapper only initialized once when used as encoder outer scope" - {
