@@ -38,18 +38,26 @@ class NotebookSparkSessionBuilder(implicit
 
   override def getOrCreate(): SparkSession = {
 
+    def defaultLogFileOpt = {
+      val ver = org.apache.spark.SPARK_VERSION
+      if (ver.startsWith("1.") || ver.startsWith("2."))
+        Log4jFile.logFile(classOf[SparkSession])
+      else
+        Log4j2File.logFile(classOf[SparkSession])
+    }
+
     val logFileOpt = logsInDeveloperConsoleOpt match {
       case Some(false) =>
         None
       case Some(true) =>
-        val fileOpt = NotebookSparkSessionBuilder.logFile(classOf[SparkSession])
+        val fileOpt = defaultLogFileOpt
         if (fileOpt.isEmpty)
           Console.err.println(
             "Warning: cannot determine log file, logs won't be sent to developer console."
           )
         fileOpt
       case None =>
-        NotebookSparkSessionBuilder.logFile(classOf[SparkSession])
+        defaultLogFileOpt
     }
 
     var sendLogOpt = Option.empty[SendLog]
@@ -73,23 +81,6 @@ class NotebookSparkSessionBuilder(implicit
     }
     finally
       sendLogOpt.foreach(_.stop())
-  }
-
-}
-
-object NotebookSparkSessionBuilder {
-
-  private def logFile(clazz: Class[_]): Option[File] = {
-
-    def appenders(log: Category): Stream[Any] =
-      if (log == null)
-        Stream()
-      else
-        log.getAllAppenders.asScala.toStream #::: appenders(log.getParent)
-
-    appenders(Logger.getLogger(clazz)).collectFirst {
-      case rfa: RollingFileAppender => new File(rfa.getFile)
-    }
   }
 
 }
