@@ -261,6 +261,7 @@ class AlmondSpark(val crossScalaVersion: String) extends CrossSbtModule with Amm
   def compileIvyDeps = super.compileIvyDeps() ++ Agg(
     Deps.ammoniteReplApi,
     Deps.jsoniterScalaMacros,
+    Deps.log4j2,
     Deps.scalaKernelApi,
     Deps.sparkSql(scalaVersion())
   )
