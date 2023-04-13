@@ -20,7 +20,7 @@ object Deps {
     ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-core:${Versions.jsoniterScala}"
   def jsoniterScalaMacros =
     ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros:${Versions.jsoniterScala}"
-  def scalaKernelApi = ivy"sh.almond:::scala-kernel-api:0.13.4"
+  def scalaKernelApi = ivy"sh.almond:::scala-kernel-api:0.13.7"
   def sparkSql(sv: String) = {
     val ver =
       if (sv.startsWith("2.12.")) "2.4.0"
