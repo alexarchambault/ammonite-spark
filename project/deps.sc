@@ -6,7 +6,7 @@ object Versions {
 
   def scala = Seq(scala213, scala212)
 
-  def ammonite      = "3.0.0-M0-14-c12b6a59"
+  def ammonite      = "3.0.0-M0-17-e7a04255"
   def jsoniterScala = "2.13.39"
 }
 
@@ -20,6 +20,7 @@ object Deps {
     ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-core:${Versions.jsoniterScala}"
   def jsoniterScalaMacros =
     ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros:${Versions.jsoniterScala}"
+  def log4j2         = ivy"org.apache.logging.log4j:log4j-core:2.17.2"
   def scalaKernelApi = ivy"sh.almond:::scala-kernel-api:0.13.4"
   def sparkSql(sv: String) = {
     val ver =
