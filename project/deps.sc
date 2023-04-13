@@ -15,7 +15,7 @@ object Deps {
   def ammoniteReplApi  = ivy"com.lihaoyi:::ammonite-repl-api:${Versions.ammonite}"
   def ammoniteRepl     = ivy"com.lihaoyi:::ammonite-repl:${Versions.ammonite}"
 
-  def jettyServer = ivy"org.eclipse.jetty:jetty-server:9.4.50.v20221201"
+  def jettyServer = ivy"org.eclipse.jetty:jetty-server:9.4.51.v20230217"
   def jsoniterScalaCore =
     ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-core:${Versions.jsoniterScala}"
   def jsoniterScalaMacros =
