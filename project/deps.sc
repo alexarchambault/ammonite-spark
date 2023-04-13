@@ -20,6 +20,7 @@ object Deps {
     ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-core:${Versions.jsoniterScala}"
   def jsoniterScalaMacros =
     ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros:${Versions.jsoniterScala}"
+  def log4j2         = ivy"org.apache.logging.log4j:log4j-core:2.17.2"
   def scalaKernelApi = ivy"sh.almond:::scala-kernel-api:0.13.7"
   def sparkSql(sv: String) = {
     val ver =
