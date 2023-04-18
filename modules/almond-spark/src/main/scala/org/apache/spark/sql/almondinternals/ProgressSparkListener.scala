@@ -87,7 +87,7 @@ final class ProgressSparkListener(
     if (progress)
       Try {
         val elem = stageElem(stageCompleted.stageInfo.stageId)
-        elem.allDone()
+        elem.stageDone()
       }
 
   override def onTaskStart(taskStart: SparkListenerTaskStart): Unit =
@@ -121,7 +121,7 @@ private[almondinternals] class ProgressBarUpdater(
   }
 
   private val pool = {
-    val executor = new ScheduledThreadPoolExecutor(1, threadFactory)
+    val executor = new ScheduledThreadPoolExecutor(5, threadFactory)
     executor.setKeepAliveTime(1L, TimeUnit.MINUTES)
     executor.allowCoreThreadTimeOut(true)
     executor
@@ -131,12 +131,12 @@ private[almondinternals] class ProgressBarUpdater(
     lazy val polling: ScheduledFuture[_] = pool.scheduleAtFixedRate(
       () => {
         elem.update()
-        if (elem.allDone0)
+        if (elem.stageDone0)
           polling.cancel(false)
       },
       0,
-      1,
-      TimeUnit.SECONDS
+      250,
+      TimeUnit.MILLISECONDS
     )
     polling
   }
