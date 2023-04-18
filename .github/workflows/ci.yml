@@ -24,11 +24,11 @@ jobs:
       with:
         fetch-depth: 0
         submodules: true
-    - uses: coursier/cache-action@v6.4.3
+    - uses: coursier/cache-action@v6.4
       with:
         extraFiles: "[\".github/scripts/*\", \".github/workflows/ci.yml\", \"*.sh\"]"
         extraKey: test-${{ matrix.MASTER }}
-    - uses: coursier/setup-action@v1.3.1
+    - uses: coursier/setup-action@v1.3
       with:
         jvm: 8
     - run: .github/scripts/test.sh
@@ -53,7 +53,7 @@ jobs:
       with:
         fetch-depth: 0
         submodules: true
-    - uses: coursier/setup-action@v1.3.1
+    - uses: coursier/setup-action@v1.3
       with:
         jvm: "temurin:17"
         apps: scalafmt:3.0.0
@@ -68,11 +68,11 @@ jobs:
       with:
         fetch-depth: 0
         submodules: true
-    - uses: coursier/cache-action@v6.4.3
+    - uses: coursier/cache-action@v6.4
       with:
         extraFiles: "[\".github/scripts/*\", \".github/workflows/ci.yml\", \"*.sh\"]"
         extraKey: "release"
-    - uses: coursier/setup-action@v1.3.1
+    - uses: coursier/setup-action@v1.3
       with:
         jvm: 8
     - run: .github/scripts/gpg-setup.sh
