@@ -2,7 +2,7 @@
 
 Run [spark](https://spark.apache.org/) calculations from [Ammonite](http://ammonite.io/)
 
-[![Build Status](https://travis-ci.org/alexarchambault/ammonite-spark.svg?branch=master)](https://travis-ci.org/alexarchambault/ammonite-spark)
+[![Build Status](https://github.com/alexarchambault/ammonite-spark/actions/workflows/ci.yml/badge.svg)](https://github.com/alexarchambault/ammonite-spark/actions/workflows/ci.yml?query=branch%3Amain)
 
 *ammonite-spark* allows to create SparkSessions from Ammonite. It passes some Ammonite internals to a `SparkSession`, so that spark calculations can be driven from Ammonite, as one would do from a [spark-shell](https://spark.apache.org/docs/2.3.1/quick-start.html#interactive-analysis-with-the-spark-shell).
 
