@@ -17,26 +17,26 @@ Run [spark](https://spark.apache.org/) calculations from [Ammonite](http://ammon
 4. [Using with YARN cluster](#using-with-yarn-cluster)
 5. [Troubleshooting](#troubleshooting)
 6. [Compatibility](#compatibility)
-7. [Missing](#missing)
 
 
 
 ## Quick start
 
-Start Ammonite >= [`1.6.3`](https://github.com/lihaoyi/Ammonite/releases/download/1.6.3/2.11-1.6.3), with the `--class-based` option. The [compatibility section](#compatibility) lists the compatible versions of Ammonite and ammonite-spark. Start Ammonite by either following [the Ammonite instructions](http://ammonite.io/#Ammonite-REPL) on its website, then do
+Start Ammonite >= [`1.6.3`](https://github.com/lihaoyi/Ammonite/releases/download/1.6.3/2.11-1.6.3), with the `--class-based` option.
+The `--tmp-output-directory` option, available since Ammonite `3.0.0-M0-14-c12b6a59` is also recommended, especially in "tight" network environments (Kubernetes, …). The [compatibility section](#compatibility) lists the compatible versions of Ammonite and ammonite-spark. Start Ammonite by either following [the Ammonite instructions](http://ammonite.io/#Ammonite-REPL) on its website, then do
 ```
-$ amm --class-based
+$ amm --class-based --tmp-output-directory
 ```
 or use [coursier](https://github.com/coursier/coursier),
 ```
-$ cs launch ammonite:2.1.4 --scala 2.12.11 -- --class-based
+$ cs launch ammonite:3.0.0-M0-19-62705f47 --scala 2.13.10 -- --class-based --tmp-output-directory
 ```
-Ensure you are using scala 2.12, the only supported Scala version as of writing this.
+Ensure you are using scala 2.12 or 2.13, the only supported Scala versions as of writing this.
 
-At the Ammonite prompt, load the Spark 2.x version of your choice, along with ammonite-spark,
+At the Ammonite prompt, load the Spark 2.x or 3.x version of your choice, along with ammonite-spark,
 ```scala
-@ import $ivy.`org.apache.spark::spark-sql:2.4.0`
-@ import $ivy.`sh.almond::ammonite-spark:0.3.0`
+@ import $ivy.`org.apache.spark::spark-sql:3.3.0`
+@ import $ivy.`sh.almond::ammonite-spark:0.13.9`
 ```
 (Note the two `::` before `spark-sql` or `ammonite-spark`, as these are scala dependencies.)
 
@@ -61,7 +61,7 @@ Note that *ammonite-spark* does *not* rely on a Spark distribution. The driver a
 
 You can then run Spark calculations, like
 ```scala
-@ def sc = spark.sparkContext
+@ def sc = spark.sparkContext // 'def' recommended over 'val', to workaround SparkContext Java serialization issues
 
 @ val rdd = sc.parallelize(1 to 100, 10)
 
@@ -151,9 +151,5 @@ with for sure.
 | `0.13.0`          | `2.5.4-8-30448e49` | `0.13.0` |
 | `0.13.1`          | `2.5.4-13-1ebd00a6` | `0.13.1` |
 | `0.13.2`          | `2.5.4-14-dc4c47bc` | `0.13.2` |
-
-## Missing
-
-Local clusters, Mesos, and Kubernetes, aren't supported yet.
-
-No scala 2.10 or 2.11 support (support for those was dropped by Ammonite).
+| ...               | ...                 | ...      |
+[ `0.13.9`          | `3.0.0-M0-17-e7a04255` | `0.13.11` |
