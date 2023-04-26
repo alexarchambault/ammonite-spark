@@ -31,6 +31,10 @@ or use [coursier](https://github.com/coursier/coursier),
 ```
 $ cs launch ammonite:3.0.0-M0-19-62705f47 --scala 2.13.10 -- --class-based --tmp-output-directory
 ```
+or [Scala CLI](https://github.com/VirtusLab/scala-cli)
+```
+$ scala-cli repl --amm --ammonite-version 3.0.0-M0-19-62705f47 --scala 2.13.10 -- --class-based --tmp-output-directory
+```
 Ensure you are using scala 2.12 or 2.13, the only supported Scala versions as of writing this.
 
 At the Ammonite prompt, load the Spark 2.x or 3.x version of your choice, along with ammonite-spark,
