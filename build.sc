@@ -1,6 +1,6 @@
 import $file.project.deps, deps.{Deps, Versions}
 
-import $ivy.`io.chris-kipp::mill-ci-release::0.1.5`
+import $ivy.`io.chris-kipp::mill-ci-release::0.1.6`
 import $ivy.`com.github.lolgab::mill-mima::0.0.18`
 
 import com.github.lolgab.mill.mima.Mima
