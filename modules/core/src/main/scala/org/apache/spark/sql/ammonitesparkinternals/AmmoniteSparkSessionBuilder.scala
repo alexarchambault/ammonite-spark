@@ -303,26 +303,29 @@ class AmmoniteSparkSessionBuilder(implicit
 
     config("spark.jars", jars.filterNot(sparkJars.toSet).map(_.toASCIIString).mkString(","))
 
-    interpApi._compilerManager.outputDir match {
-      case None =>
-        val classServer = new AmmoniteClassServer(
-          host(),
-          bindAddress(),
-          options0.get("spark.repl.class.port").fold(AmmoniteClassServer.randomPort())(_.toInt),
-          replApi.sess.frames
-        )
-        classServerOpt = Some(classServer)
+    if (interpApi != null)
+      interpApi._compilerManager.outputDir match {
+        case None =>
+          if (replApi != null) {
+            val classServer = new AmmoniteClassServer(
+              host(),
+              bindAddress(),
+              options0.get("spark.repl.class.port").fold(AmmoniteClassServer.randomPort())(_.toInt),
+              replApi.sess.frames
+            )
+            classServerOpt = Some(classServer)
 
-        config("spark.repl.class.uri", classServer.uri.toString)
+            config("spark.repl.class.uri", classServer.uri.toString)
 
-        System.err.println(
-          "Warning: Ammonite output directory not specified upon launch. " +
-            "Relying on the spark.repl.class.uri property, which might have issues in tight network environments."
-        )
+            System.err.println(
+              "Warning: Ammonite output directory not specified upon launch. " +
+                "Relying on the spark.repl.class.uri property, which might have issues in tight network environments."
+            )
+          }
 
-      case Some(outputDir) =>
-        config("spark.repl.class.outputDir", outputDir.toAbsolutePath.toString)
-    }
+        case Some(outputDir) =>
+          config("spark.repl.class.outputDir", outputDir.toAbsolutePath.toString)
+      }
 
     if (!options0.contains("spark.ui.port"))
       config("spark.ui.port", AmmoniteClassServer.availablePortFrom(4040).toString)
@@ -377,11 +380,12 @@ class AmmoniteSparkSessionBuilder(implicit
     println("Creating SparkSession")
     val session = super.getOrCreate()
 
-    interpApi.beforeExitHooks += { v =>
-      if (!session.sparkContext.isStopped)
-        session.sparkContext.stop()
-      v
-    }
+    if (interpApi != null)
+      interpApi.beforeExitHooks += { v =>
+        if (!session.sparkContext.isStopped)
+          session.sparkContext.stop()
+        v
+      }
 
     session.sparkContext.addSparkListener(
       new SparkListener {
