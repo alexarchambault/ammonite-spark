@@ -1,21 +1,24 @@
 import $file.project.deps, deps.{Deps, Versions}
 
-import $ivy.`io.chris-kipp::mill-ci-release::0.1.6`
 import $ivy.`com.github.lolgab::mill-mima::0.0.19`
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.3.1`
 
 import com.github.lolgab.mill.mima.Mima
-import io.kipp.mill.ci.release.CiReleaseModule
+import de.tobiasroeser.mill.vcs.version.VcsVersion
 import mill._
 import mill.scalalib._
 
 import java.util.Arrays
 
+import scala.concurrent.duration.DurationInt
+
 // Tell mill modules are under modules/
 implicit def millModuleBasePath: define.BasePath =
   define.BasePath(super.millModuleBasePath.value / "modules")
 
-trait AmmSparkPublishModule extends CiReleaseModule {
+trait AmmSparkPublishModule extends PublishModule {
   import mill.scalalib.publish._
+  def publishVersion = VcsVersion.vcsState().format()
   def pomSettings = PomSettings(
     description = artifactName(),
     organization = "sh.almond",
@@ -270,4 +273,60 @@ class AlmondSpark(val crossScalaVersion: String) extends CrossSbtModule with Amm
       coursier.Repositories.jitpack
     )
   }
+}
+
+def publishSonatype(tasks: mill.main.Tasks[PublishModule.PublishData]) = T.command {
+  publishSonatype0(
+    data = define.Target.sequence(tasks.value)(),
+    log = T.ctx().log
+  )
+}
+
+def publishSonatype0(
+  data: Seq[PublishModule.PublishData],
+  log: mill.api.Logger
+): Unit = {
+
+  val credentials = sys.env("SONATYPE_USERNAME") + ":" + sys.env("SONATYPE_PASSWORD")
+  val pgpPassword = sys.env("PGP_PASSPHRASE")
+  val timeout     = 10.minutes
+
+  val artifacts = data.map {
+    case PublishModule.PublishData(a, s) =>
+      (s.map { case (p, f) => (p.path, f) }, a)
+  }
+
+  val isRelease = {
+    val versions = artifacts.map(_._2.version).toSet
+    val set      = versions.map(!_.endsWith("-SNAPSHOT"))
+    assert(
+      set.size == 1,
+      s"Found both snapshot and non-snapshot versions: ${versions.toVector.sorted.mkString(", ")}"
+    )
+    set.head
+  }
+  val publisher = new scalalib.publish.SonatypePublisher(
+    uri = "https://oss.sonatype.org/service/local",
+    snapshotUri = "https://oss.sonatype.org/content/repositories/snapshots",
+    credentials = credentials,
+    signed = true,
+    // format: off
+    gpgArgs = Seq(
+      "--detach-sign",
+      "--batch=true",
+      "--yes",
+      "--pinentry-mode", "loopback",
+      "--passphrase", pgpPassword,
+      "--armor",
+      "--use-agent"
+    ),
+    // format: on
+    readTimeout = timeout.toMillis.toInt,
+    connectTimeout = timeout.toMillis.toInt,
+    log = log,
+    awaitTimeout = timeout.toMillis.toInt,
+    stagingRelease = isRelease
+  )
+
+  publisher.publishAll(isRelease, artifacts: _*)
 }
