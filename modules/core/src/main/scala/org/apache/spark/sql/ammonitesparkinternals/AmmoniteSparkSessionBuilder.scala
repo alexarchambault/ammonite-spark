@@ -7,6 +7,7 @@ import java.nio.file.{Files, Paths}
 
 import ammonite.interp.api.InterpAPI
 import ammonite.repl.api.ReplAPI
+import coursier.cputil.ClassPathUtil
 import coursierapi.Dependency
 import org.apache.spark.SparkContext
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
@@ -334,8 +335,7 @@ class AmmoniteSparkSessionBuilder(implicit
 
         val sparkDistClassPath = sys.env.get("SPARK_DIST_CLASSPATH")
           .toList
-          .flatMap(_.split(File.pathSeparator).toList)
-          .map(Paths.get(_))
+          .flatMap(ClassPathUtil.classPath(_))
 
         (fromBaseCp ++ fromSparkDistrib, sparkDistClassPath)
     }
