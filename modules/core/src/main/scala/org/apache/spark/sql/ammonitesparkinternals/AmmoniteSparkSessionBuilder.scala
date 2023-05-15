@@ -183,6 +183,19 @@ class AmmoniteSparkSessionBuilder(implicit
     this
   }
 
+  private var sendSparkYarnJars0 = true
+  private var sendSparkJars0     = true
+
+  def sendSparkYarnJars(force: Boolean = true): this.type = {
+    sendSparkYarnJars0 = force
+    this
+  }
+
+  def sendSparkJars(force: Boolean = true): this.type = {
+    sendSparkJars0 = force
+    this
+  }
+
   var classServerOpt = Option.empty[AmmoniteClassServer]
 
   private def isYarn(): Boolean =
@@ -298,10 +311,14 @@ class AmmoniteSparkSessionBuilder(implicit
         fromBaseCp ++ fromSparkDistrib
     }
 
-    if (isYarn())
+    if (sendSparkYarnJars0 && isYarn())
       config("spark.yarn.jars", sparkJars.map(_.toASCIIString).mkString(","))
 
-    config("spark.jars", jars.filterNot(sparkJars.toSet).map(_.toASCIIString).mkString(","))
+    if (sendSparkJars0) {
+      val sparkJarFileSet = sparkJars.toSet
+      val nonSparkJars    = jars.filter(uri => !sparkJarFileSet.contains(uri))
+      config("spark.jars", nonSparkJars.map(_.toASCIIString).mkString(","))
+    }
 
     if (interpApi != null)
       interpApi._compilerManager.outputDir match {
