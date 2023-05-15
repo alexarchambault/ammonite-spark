@@ -306,10 +306,12 @@ class AmmoniteSparkSessionBuilder(implicit
 
     val jars = (baseJars ++ sessionJars).distinct
 
-    val sparkJars = sys.env.get("SPARK_HOME") match {
+    val (sparkJars, sparkDistClassPath) = sys.env.get("SPARK_HOME") match {
       case None =>
         println("Getting spark JARs")
-        SparkDependencies.sparkJars(interpApi.repositories(), interpApi.resolutionHooks, Nil)
+        val sparkJars0 =
+          SparkDependencies.sparkJars(interpApi.repositories(), interpApi.resolutionHooks, Nil)
+        (sparkJars0, Nil)
       case Some(sparkHome) =>
         // Loose attempt at using the scala JARs already loaded in Ammonite,
         // rather than ones from the spark distribution.
@@ -330,16 +332,22 @@ class AmmoniteSparkSessionBuilder(implicit
           }
           .map(_.toAbsolutePath.toUri)
 
-        fromBaseCp ++ fromSparkDistrib
+        val sparkDistClassPath = sys.env.get("SPARK_DIST_CLASSPATH")
+          .toList
+          .flatMap(_.split(File.pathSeparator).toList)
+          .map(Paths.get(_))
+
+        (fromBaseCp ++ fromSparkDistrib, sparkDistClassPath)
     }
 
     if (sendSparkYarnJars0 && isYarn())
       config("spark.yarn.jars", sparkJars.map(_.toASCIIString).mkString(","))
 
     if (sendSparkJars0) {
-      val sparkJarFileSet = (sparkJars.iterator ++ ignoreJars0.iterator)
-        .map(normalize)
-        .toSet
+      val sparkJarFileSet =
+        (sparkJars.iterator ++ sparkDistClassPath.map(_.toUri).iterator ++ ignoreJars0.iterator)
+          .map(normalize)
+          .toSet
       val nonSparkJars = jars.filter(uri => !sparkJarFileSet.contains(normalize(uri)))
       config("spark.jars", nonSparkJars.map(_.toASCIIString).mkString(","))
     }
