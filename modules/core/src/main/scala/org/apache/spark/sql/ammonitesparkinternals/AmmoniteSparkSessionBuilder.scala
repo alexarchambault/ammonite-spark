@@ -113,12 +113,28 @@ object AmmoniteSparkSessionBuilder {
           Stream.empty
       }
 
+  /** Resolves symbolic links in `uri` if it points at a local file
+    *
+    * So that two URIs pointing at the same file have the same normalized URI.
+    */
+  private def normalize(uri: URI): URI =
+    if (uri.getScheme == "file") {
+      val path = Paths.get(uri)
+      if (Files.exists(path))
+        path.toRealPath().toUri
+      else
+        uri
+    }
+    else
+      uri
 }
 
 class AmmoniteSparkSessionBuilder(implicit
   interpApi: InterpAPI,
   replApi: ReplAPI
 ) extends SparkSession.Builder {
+
+  import AmmoniteSparkSessionBuilder.normalize
 
   private val options0: scala.collection.Map[String, String] = {
 
@@ -321,8 +337,10 @@ class AmmoniteSparkSessionBuilder(implicit
       config("spark.yarn.jars", sparkJars.map(_.toASCIIString).mkString(","))
 
     if (sendSparkJars0) {
-      val sparkJarFileSet = (sparkJars.iterator ++ ignoreJars0.iterator).toSet
-      val nonSparkJars    = jars.filter(uri => !sparkJarFileSet.contains(uri))
+      val sparkJarFileSet = (sparkJars.iterator ++ ignoreJars0.iterator)
+        .map(normalize)
+        .toSet
+      val nonSparkJars = jars.filter(uri => !sparkJarFileSet.contains(normalize(uri)))
       config("spark.jars", nonSparkJars.map(_.toASCIIString).mkString(","))
     }
 
