@@ -146,6 +146,7 @@ class Core(val crossScalaVersion: String) extends CrossSbtModule with WithProper
     Deps.sparkSql(scalaVersion())
   )
   def ivyDeps = super.ivyDeps() ++ Agg(
+    Deps.classPathUtil,
     Deps.jettyServer
   )
   def propertyFilePath =
