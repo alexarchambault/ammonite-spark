@@ -19,10 +19,12 @@ implicit def millModuleBasePath: define.BasePath =
 trait AmmSparkPublishModule extends PublishModule {
   import mill.scalalib.publish._
   def publishVersion = T {
-    val v = VcsVersion.vcsState().format()
+    val v        = VcsVersion.vcsState().format()
     val dirtyIdx = v.indexOf("-DIRTY")
+    def endsWithCommitHash =
+      v.length > 6 && v.substring(v.length - 6).forall(c => c.isDigit || (c >= 'a' && c <= 'f'))
     if (dirtyIdx >= 0) v.take(dirtyIdx) + "-SNAPSHOT"
-    else if (v.length > 6 && v.substring(v.length - 6).forall(c => c.isDigit || (c >= 'a' && c <= 'f'))) v + "-SNAPSHOT"
+    else if (endsWithCommitHash) v + "-SNAPSHOT"
     else v
   }
   def pomSettings = PomSettings(
