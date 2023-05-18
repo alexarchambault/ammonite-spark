@@ -203,6 +203,7 @@ class AmmoniteSparkSessionBuilder(implicit
   private var sendSparkYarnJars0 = true
   private var sendSparkJars0     = true
   private var ignoreJars0        = Set.empty[URI]
+  private var sendSourceJars0    = false
   private var keepJars0          = Seq.empty[URI => Boolean]
 
   def sendSparkYarnJars(force: Boolean = true): this.type = {
@@ -217,6 +218,11 @@ class AmmoniteSparkSessionBuilder(implicit
 
   def ignoreJars(ignore: Set[URI]): this.type = {
     ignoreJars0 = ignoreJars0 ++ ignore
+    this
+  }
+
+  def sendSourceJars(send: Boolean): this.type = {
+    sendSourceJars0 = send
     this
   }
 
@@ -355,7 +361,10 @@ class AmmoniteSparkSessionBuilder(implicit
           .map(normalize)
           .toSet
       val nonSparkJars = jars.filter(uri => !sparkJarFileSet.contains(normalize(uri)))
-      val finalNonSparkJars = keepJars0.foldLeft(nonSparkJars)(_.filter(_))
+      val nonSparkJars0 =
+        if (sendSourceJars0) nonSparkJars
+        else nonSparkJars.filter(uri => !uri.toASCIIString.endsWith("-sources.jar"))
+      val finalNonSparkJars = keepJars0.foldLeft(nonSparkJars0)(_.filter(_))
       config("spark.jars", finalNonSparkJars.map(_.toASCIIString).mkString(","))
     }
 
