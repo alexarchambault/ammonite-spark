@@ -24,11 +24,11 @@ jobs:
       with:
         fetch-depth: 0
         submodules: true
-    - uses: coursier/cache-action@v6.4.3
+    - uses: coursier/cache-action@v6.4
       with:
         extraFiles: "[\".github/scripts/*\", \".github/workflows/ci.yml\", \"*.sh\"]"
         extraKey: test-${{ matrix.MASTER }}
-    - uses: coursier/setup-action@v1.3.0
+    - uses: coursier/setup-action@v1.3
       with:
         jvm: 8
     - run: .github/scripts/test.sh
@@ -53,35 +53,8 @@ jobs:
       with:
         fetch-depth: 0
         submodules: true
-    - uses: coursier/setup-action@v1.3.0
+    - uses: coursier/setup-action@v1.3
       with:
         jvm: "temurin:17"
         apps: scalafmt:3.0.0
     - run: scalafmt --check
-
-  release:
-    needs: all-tests
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v3
-      with:
-        fetch-depth: 0
-        submodules: true
-    - uses: coursier/cache-action@v6.4.3
-      with:
-        extraFiles: "[\".github/scripts/*\", \".github/workflows/ci.yml\", \"*.sh\"]"
-        extraKey: "release"
-    - uses: coursier/setup-action@v1.3.0
-      with:
-        jvm: 8
-    - run: .github/scripts/gpg-setup.sh
-      env:
-        PGP_SECRET: ${{ secrets.PUBLISH_SECRET_KEY }}
-    - run: ./mill -i io.kipp.mill.ci.release.ReleaseModule/publishAll
-      shell: bash
-      env:
-        PGP_PASSPHRASE: ${{ secrets.PUBLISH_SECRET_KEY_PASSWORD }}
-        PGP_SECRET: ${{ secrets.PUBLISH_SECRET_KEY }}
-        SONATYPE_PASSWORD: ${{ secrets.PUBLISH_PASSWORD }}
-        SONATYPE_USERNAME: ${{ secrets.PUBLISH_USER }}

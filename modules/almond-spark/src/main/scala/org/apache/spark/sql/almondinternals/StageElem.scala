@@ -13,7 +13,7 @@ final class StageElem(stageId: Int, numTasks: Int, keep: Boolean, name: String, 
   val startedTasks = new AtomicInteger
   val doneTasks    = new AtomicInteger
 
-  @volatile var allDone0 = false
+  @volatile var stageDone0 = false
 
   def taskStart(): Unit = {
     startedTasks.incrementAndGet()
@@ -23,8 +23,8 @@ final class StageElem(stageId: Int, numTasks: Int, keep: Boolean, name: String, 
     doneTasks.incrementAndGet()
   }
 
-  def allDone(): Unit = {
-    allDone0 = true
+  def stageDone(): Unit = {
+    stageDone0 = true
   }
 
   val extraStyle = Seq(
@@ -53,9 +53,9 @@ final class StageElem(stageId: Int, numTasks: Int, keep: Boolean, name: String, 
     publish.html(
       s"""<div>
          |  <span style="float: left; ${extraStyle.mkString("; ")}">$name</span>
-         |  <span style="float: right; ${
-          extraStyle.mkString("; ")
-        }"><a href="#" onclick="cancelStage($stageId);">(kill)</a></span>
+         |  <span style="float: right; ${extraStyle.mkString(
+          "; "
+        )}"><a href="#" onclick="cancelStage($stageId);">(kill)</a></span>
          |</div>
          |<br>
          |""".stripMargin,
@@ -64,9 +64,9 @@ final class StageElem(stageId: Int, numTasks: Int, keep: Boolean, name: String, 
     // <br> above seems required put both divs on different lines in nteract
     publish.html(
       s"""<div class="progress">
-         |  <div class="progress-bar bg-success" role="progressbar" style="width: 0%; ${
-          extraStyle.mkString("; ")
-        }; color: white" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+         |  <div class="progress-bar bg-success" role="progressbar" style="width: 0%; ${extraStyle.mkString(
+          "; "
+        )}; color: white" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
          |    0 / $numTasks
          |  </div>
          |</div>
@@ -77,38 +77,31 @@ final class StageElem(stageId: Int, numTasks: Int, keep: Boolean, name: String, 
 
   def update()(implicit publish: OutputHandler): Unit = {
 
-    if (allDone0)
-      publish.updateHtml(
-        s"""<div>
-           |  <span style="float: left;">$name</span>
-           |</div>
-           |""".stripMargin,
-        id = titleDisplayId
-      )
+    val doneTasks0    = doneTasks.get()
+    val startedTasks0 = startedTasks.get()
 
-    if (allDone0 && !keep)
+    val diff = startedTasks0 - doneTasks0
+
+    val donePct    = math.round(100.0 * doneTasks0.toDouble / numTasks).toInt
+    val startedPct = math.round(100.0 * (startedTasks0 - doneTasks0).toDouble / numTasks).toInt
+
+    publish.updateHtml(
+      s"""<div class="progress">
+         |  <div class="progress-bar" role="progressbar" style="background-color: blue; width: $donePct%; ${extraStyle.mkString(
+          "; "
+        )}; color: white" aria-valuenow="$donePct" aria-valuemin="0" aria-valuemax="100">
+         |    $doneTasks0${if (diff == 0) "" else s" + $diff"} / $numTasks
+         |  </div>
+         |  <div class="progress-bar" role="progressbar" style="background-color: red; width: $startedPct%" aria-valuenow="$startedPct" aria-valuemin="0" aria-valuemax="100"></div>
+         |</div>
+         |""".stripMargin,
+      id = displayId
+    )
+
+    if (stageDone0 && !keep) {
+      Thread.sleep(3000) // Allow the user to see the completed bar before wiping it
+      publish.updateHtml("", id = titleDisplayId)
       publish.updateHtml("", id = displayId)
-    else {
-      val doneTasks0    = doneTasks.get()
-      val startedTasks0 = startedTasks.get()
-
-      val diff = startedTasks0 - doneTasks0
-
-      val donePct    = math.round(100.0 * doneTasks0.toDouble / numTasks).toInt
-      val startedPct = math.round(100.0 * (startedTasks0 - doneTasks0).toDouble / numTasks).toInt
-
-      publish.updateHtml(
-        s"""<div class="progress">
-           |  <div class="progress-bar" role="progressbar" style="background-color: blue; width: $donePct%; ${
-            extraStyle.mkString("; ")
-          }; color: white" aria-valuenow="$donePct" aria-valuemin="0" aria-valuemax="100">
-           |    $doneTasks0${if (diff == 0) "" else s" + $diff"} / $numTasks
-           |  </div>
-           |  <div class="progress-bar" role="progressbar" style="background-color: red; width: $startedPct%" aria-valuenow="$startedPct" aria-valuemin="0" aria-valuemax="100"></div>
-           |</div>
-           |""".stripMargin,
-        id = displayId
-      )
     }
   }
 

@@ -7,6 +7,7 @@ import java.nio.file.{Files, Paths}
 
 import ammonite.interp.api.InterpAPI
 import ammonite.repl.api.ReplAPI
+import coursier.cputil.ClassPathUtil
 import coursierapi.Dependency
 import org.apache.spark.SparkContext
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
@@ -113,12 +114,28 @@ object AmmoniteSparkSessionBuilder {
           Stream.empty
       }
 
+  /** Resolves symbolic links in `uri` if it points at a local file
+    *
+    * So that two URIs pointing at the same file have the same normalized URI.
+    */
+  private def normalize(uri: URI): URI =
+    if (uri.getScheme == "file") {
+      val path = Paths.get(uri)
+      if (Files.exists(path))
+        path.toRealPath().toUri
+      else
+        uri
+    }
+    else
+      uri
 }
 
 class AmmoniteSparkSessionBuilder(implicit
   interpApi: InterpAPI,
   replApi: ReplAPI
 ) extends SparkSession.Builder {
+
+  import AmmoniteSparkSessionBuilder.normalize
 
   private val options0: scala.collection.Map[String, String] = {
 
@@ -180,6 +197,37 @@ class AmmoniteSparkSessionBuilder(implicit
 
   def progressBars(force: Boolean = true): this.type = {
     forceProgressBars0 = force
+    this
+  }
+
+  private var sendSparkYarnJars0 = true
+  private var sendSparkJars0     = true
+  private var ignoreJars0        = Set.empty[URI]
+  private var sendSourceJars0    = false
+  private var keepJars0          = Seq.empty[URI => Boolean]
+
+  def sendSparkYarnJars(force: Boolean = true): this.type = {
+    sendSparkYarnJars0 = force
+    this
+  }
+
+  def sendSparkJars(force: Boolean = true): this.type = {
+    sendSparkJars0 = force
+    this
+  }
+
+  def ignoreJars(ignore: Set[URI]): this.type = {
+    ignoreJars0 = ignoreJars0 ++ ignore
+    this
+  }
+
+  def sendSourceJars(send: Boolean): this.type = {
+    sendSourceJars0 = send
+    this
+  }
+
+  def keepJars(keep: URI => Boolean): this.type = {
+    keepJars0 = keepJars0 :+ keep
     this
   }
 
@@ -271,10 +319,12 @@ class AmmoniteSparkSessionBuilder(implicit
 
     val jars = (baseJars ++ sessionJars).distinct
 
-    val sparkJars = sys.env.get("SPARK_HOME") match {
+    val (sparkJars, sparkDistClassPath) = sys.env.get("SPARK_HOME") match {
       case None =>
         println("Getting spark JARs")
-        SparkDependencies.sparkJars(interpApi.repositories(), interpApi.resolutionHooks, Nil)
+        val sparkJars0 =
+          SparkDependencies.sparkJars(interpApi.repositories(), interpApi.resolutionHooks, Nil)
+        (sparkJars0, Nil)
       case Some(sparkHome) =>
         // Loose attempt at using the scala JARs already loaded in Ammonite,
         // rather than ones from the spark distribution.
@@ -295,34 +345,52 @@ class AmmoniteSparkSessionBuilder(implicit
           }
           .map(_.toAbsolutePath.toUri)
 
-        fromBaseCp ++ fromSparkDistrib
+        val sparkDistClassPath = sys.env.get("SPARK_DIST_CLASSPATH")
+          .toList
+          .flatMap(ClassPathUtil.classPath(_))
+
+        (fromBaseCp ++ fromSparkDistrib, sparkDistClassPath)
     }
 
-    if (isYarn())
+    if (sendSparkYarnJars0 && isYarn())
       config("spark.yarn.jars", sparkJars.map(_.toASCIIString).mkString(","))
 
-    config("spark.jars", jars.filterNot(sparkJars.toSet).map(_.toASCIIString).mkString(","))
-
-    interpApi._compilerManager.outputDir match {
-      case None =>
-        val classServer = new AmmoniteClassServer(
-          host(),
-          bindAddress(),
-          options0.get("spark.repl.class.port").fold(AmmoniteClassServer.randomPort())(_.toInt),
-          replApi.sess.frames
-        )
-        classServerOpt = Some(classServer)
-
-        config("spark.repl.class.uri", classServer.uri.toString)
-
-        System.err.println(
-          "Warning: Ammonite output directory not specified upon launch. " +
-            "Relying on the spark.repl.class.uri property, which might have issues in tight network environments."
-        )
-
-      case Some(outputDir) =>
-        config("spark.repl.class.outputDir", outputDir.toAbsolutePath.toString)
+    if (sendSparkJars0) {
+      val sparkJarFileSet =
+        (sparkJars.iterator ++ sparkDistClassPath.map(_.toUri).iterator ++ ignoreJars0.iterator)
+          .map(normalize)
+          .toSet
+      val nonSparkJars = jars.filter(uri => !sparkJarFileSet.contains(normalize(uri)))
+      val nonSparkJars0 =
+        if (sendSourceJars0) nonSparkJars
+        else nonSparkJars.filter(uri => !uri.toASCIIString.endsWith("-sources.jar"))
+      val finalNonSparkJars = keepJars0.foldLeft(nonSparkJars0)(_.filter(_))
+      config("spark.jars", finalNonSparkJars.map(_.toASCIIString).mkString(","))
     }
+
+    if (interpApi != null)
+      interpApi._compilerManager.outputDir match {
+        case None =>
+          if (replApi != null) {
+            val classServer = new AmmoniteClassServer(
+              host(),
+              bindAddress(),
+              options0.get("spark.repl.class.port").fold(AmmoniteClassServer.randomPort())(_.toInt),
+              replApi.sess.frames
+            )
+            classServerOpt = Some(classServer)
+
+            config("spark.repl.class.uri", classServer.uri.toString)
+
+            System.err.println(
+              "Warning: Ammonite output directory not specified upon launch. " +
+                "Relying on the spark.repl.class.uri property, which might have issues in tight network environments."
+            )
+          }
+
+        case Some(outputDir) =>
+          config("spark.repl.class.outputDir", outputDir.toAbsolutePath.toString)
+      }
 
     if (!options0.contains("spark.ui.port"))
       config("spark.ui.port", AmmoniteClassServer.availablePortFrom(4040).toString)
@@ -377,11 +445,12 @@ class AmmoniteSparkSessionBuilder(implicit
     println("Creating SparkSession")
     val session = super.getOrCreate()
 
-    interpApi.beforeExitHooks += { v =>
-      if (!session.sparkContext.isStopped)
-        session.sparkContext.stop()
-      v
-    }
+    if (interpApi != null)
+      interpApi.beforeExitHooks += { v =>
+        if (!session.sparkContext.isStopped)
+          session.sparkContext.stop()
+        v
+      }
 
     session.sparkContext.addSparkListener(
       new SparkListener {
