@@ -6,7 +6,7 @@ object Versions {
 
   def scala = Seq(scala213, scala212)
 
-  def ammonite      = "3.0.0-M0-23-f664d7ef"
+  def ammonite      = "3.0.0-M0-31-80deef08"
   def jsoniterScala = "2.13.5"
 }
 
