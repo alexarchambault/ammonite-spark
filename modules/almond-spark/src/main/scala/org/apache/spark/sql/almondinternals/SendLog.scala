@@ -4,7 +4,7 @@ import java.io.{BufferedReader, File, FileReader}
 import java.nio.file.{Files, StandardOpenOption}
 import java.util.UUID
 
-import almond.interpreter.api.{CommHandler, CommTarget, OutputHandler}
+import almond.interpreter.api.{CommHandler, CommTarget, DisplayData, OutputHandler}
 
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.{Duration, DurationInt, FiniteDuration}
@@ -192,39 +192,68 @@ object SendLog {
     outputHandler: OutputHandler
   ): SendLog = {
 
+    lazy val sendLog = new SendLog(f, commHandler, prefix = Option(prefix))
+
+    val id = UUID.randomUUID().toString
+    val data = DisplayData(
+      Map(DisplayData.ContentType.text -> "", DisplayData.ContentType.html -> ""),
+      idOpt = Some(id)
+    )
+    outputHandler.display(data)
+    val commName = s"spark-logs-$id"
+    commHandler.receiver(
+      commName,
+      onOpen = (_, _) => {
+        val msg = "See your browser developer console for detailed spark logs."
+        val updatedData = DisplayData(
+          Map(
+            DisplayData.ContentType.text -> msg,
+            DisplayData.ContentType.html -> s"<p>$msg</p>"
+          ),
+          idOpt = Some(id)
+        )
+        outputHandler.updateDisplay(updatedData)
+        sendLog.start()
+      }
+    )(_ => ())
+
     // It seems the file must exist for the reader above to get content appended to it.
     if (!f.exists())
       Files.write(f.toPath, Array.emptyByteArray, StandardOpenOption.CREATE)
 
-    val sendLog = new SendLog(f, commHandler, prefix = Option(prefix))
     sendLog.init()
-    sendLog.start()
     sendLog
   }
 
   private def jsInit(target: String): String =
     s"""
-      Jupyter.notebook.kernel.comm_manager.register_target(
-        "$target",
-        function (comm, data) {
-          console.log("$$ tail -F " + data.content.data.file_name);
-          var prefix = data.content.data.prefix || "";
+      if (typeof Jupyter != "undefined") {
+        var startingComm = Jupyter.notebook.kernel.comm_manager.new_comm("$target-starting", "{}");
+        startingComm.open();
+        startingComm.send({});
 
-          var ackComm = Jupyter.notebook.kernel.comm_manager.new_comm("$target-ack", "{}");
-          ackComm.open();
-          ackComm.send({});
+        Jupyter.notebook.kernel.comm_manager.register_target(
+          "$target",
+          function (comm, data) {
+            console.log("$$ tail -F " + data.content.data.file_name);
+            var prefix = data.content.data.prefix || "";
 
-          comm.on_msg(
-            function (msg) {
-              var a = msg.content.data.data;
-              var len = a.length;
-              for (var i = 0; i < len; i++) {
-                console.log(prefix + a[i]);
+            var ackComm = Jupyter.notebook.kernel.comm_manager.new_comm("$target-ack", "{}");
+            ackComm.open();
+            ackComm.send({});
+
+            comm.on_msg(
+              function (msg) {
+                var a = msg.content.data.data;
+                var len = a.length;
+                for (var i = 0; i < len; i++) {
+                  console.log(prefix + a[i]);
+                }
               }
-            }
-          );
-        }
-      );
+            );
+          }
+        );
+      }
     """
 
 }
