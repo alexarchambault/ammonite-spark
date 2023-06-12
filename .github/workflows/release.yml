@@ -25,7 +25,7 @@ jobs:
     - run: .github/scripts/gpg-setup.sh
       env:
         PGP_SECRET: ${{ secrets.PUBLISH_SECRET_KEY }}
-    - run: ./mill -i publishSonatype __.publishArtifacts
+    - run: ./mill -i ci.publishSonatype __.publishArtifacts
       shell: bash
       env:
         PGP_PASSPHRASE: ${{ secrets.PUBLISH_SECRET_KEY_PASSWORD }}

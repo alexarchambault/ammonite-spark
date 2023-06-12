@@ -1,7 +1,7 @@
 import $file.project.deps, deps.{Deps, Versions}
 
-import $ivy.`com.github.lolgab::mill-mima::0.0.19`
-import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.3.1`
+import $ivy.`com.github.lolgab::mill-mima::0.0.23`
+import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.0`
 
 import com.github.lolgab.mill.mima.Mima
 import de.tobiasroeser.mill.vcs.version.VcsVersion
@@ -137,16 +137,16 @@ object `spark-stubs_30` extends SbtModule with AmmSparkPublishModule {
   )
 }
 
-object `spark-stubs_32`                           extends Cross[SparkStubs32](Versions.scala: _*)
-class SparkStubs32(val crossScalaVersion: String) extends CrossSbtModule
+object `spark-stubs_32` extends Cross[SparkStubs32](Versions.scala)
+trait SparkStubs32      extends CrossSbtModule
     with AmmSparkPublishModule {
   def ivyDeps = super.ivyDeps() ++ Agg(
     Deps.sparkSql32
   )
 }
 
-object core                               extends Cross[Core](Versions.scala: _*)
-class Core(val crossScalaVersion: String) extends CrossSbtModule with WithPropertyFile
+object core extends Cross[Core](Versions.scala)
+trait Core  extends CrossSbtModule with WithPropertyFile
     with AmmSparkPublishModule with AmmSparkMima {
   def artifactName = "ammonite-spark"
   def compileIvyDeps = super.compileIvyDeps() ++ Agg(
@@ -206,8 +206,8 @@ trait AmmSparkTests extends TestModule {
   def forkArgs      = super.forkArgs() ++ Seq("-Xmx3g", "-Dfoo=bzz")
 }
 
-object tests                               extends Cross[Tests](Versions.scala: _*)
-class Tests(val crossScalaVersion: String) extends CrossSbtModule with WithPropertyFile
+object tests extends Cross[Tests](Versions.scala)
+trait Tests  extends CrossSbtModule with WithPropertyFile
     with WithDependencyResourceFile {
   def propertyFilePath       = os.sub / "ammonite" / "ammonite-spark.properties"
   def versionInProperties    = core().publishVersion()
@@ -242,8 +242,8 @@ object `standalone-tests` extends SbtModule {
   object test extends Tests with AmmSparkTests
 }
 
-object `yarn-tests` extends Cross[YarnTests](Versions.scala: _*)
-class YarnTests(val crossScalaVersion: String) extends CrossSbtModule {
+object `yarn-tests` extends Cross[YarnTests](Versions.scala)
+trait YarnTests extends CrossSbtModule {
   def moduleDeps = super.moduleDeps ++ Seq(
     tests()
   )
@@ -261,8 +261,8 @@ object `yarn-spark-distrib-tests` extends SbtModule {
   object test extends Tests with AmmSparkTests
 }
 
-object `almond-spark`                            extends Cross[AlmondSpark](Versions.scala: _*)
-class AlmondSpark(val crossScalaVersion: String) extends CrossSbtModule with AmmSparkPublishModule
+object `almond-spark` extends Cross[AlmondSpark](Versions.scala)
+trait AlmondSpark     extends CrossSbtModule with AmmSparkPublishModule
     with AmmSparkMima {
   def moduleDeps = super.moduleDeps ++ Seq(
     core()
@@ -284,58 +284,60 @@ class AlmondSpark(val crossScalaVersion: String) extends CrossSbtModule with Amm
   }
 }
 
-def publishSonatype(tasks: mill.main.Tasks[PublishModule.PublishData]) = T.command {
-  publishSonatype0(
-    data = define.Target.sequence(tasks.value)(),
-    log = T.ctx().log
-  )
-}
-
-def publishSonatype0(
-  data: Seq[PublishModule.PublishData],
-  log: mill.api.Logger
-): Unit = {
-
-  val credentials = sys.env("SONATYPE_USERNAME") + ":" + sys.env("SONATYPE_PASSWORD")
-  val pgpPassword = sys.env("PGP_PASSPHRASE")
-  val timeout     = 10.minutes
-
-  val artifacts = data.map {
-    case PublishModule.PublishData(a, s) =>
-      (s.map { case (p, f) => (p.path, f) }, a)
-  }
-
-  val isRelease = {
-    val versions = artifacts.map(_._2.version).toSet
-    val set      = versions.map(!_.endsWith("-SNAPSHOT"))
-    assert(
-      set.size == 1,
-      s"Found both snapshot and non-snapshot versions: ${versions.toVector.sorted.mkString(", ")}"
+object ci extends Module {
+  def publishSonatype(tasks: mill.main.Tasks[PublishModule.PublishData]) = T.command {
+    publishSonatype0(
+      data = define.Target.sequence(tasks.value)(),
+      log = T.ctx().log
     )
-    set.head
   }
-  val publisher = new scalalib.publish.SonatypePublisher(
-    uri = "https://oss.sonatype.org/service/local",
-    snapshotUri = "https://oss.sonatype.org/content/repositories/snapshots",
-    credentials = credentials,
-    signed = true,
-    // format: off
-    gpgArgs = Seq(
-      "--detach-sign",
-      "--batch=true",
-      "--yes",
-      "--pinentry-mode", "loopback",
-      "--passphrase", pgpPassword,
-      "--armor",
-      "--use-agent"
-    ),
-    // format: on
-    readTimeout = timeout.toMillis.toInt,
-    connectTimeout = timeout.toMillis.toInt,
-    log = log,
-    awaitTimeout = timeout.toMillis.toInt,
-    stagingRelease = isRelease
-  )
 
-  publisher.publishAll(isRelease, artifacts: _*)
+  def publishSonatype0(
+    data: Seq[PublishModule.PublishData],
+    log: mill.api.Logger
+  ): Unit = {
+
+    val credentials = sys.env("SONATYPE_USERNAME") + ":" + sys.env("SONATYPE_PASSWORD")
+    val pgpPassword = sys.env("PGP_PASSPHRASE")
+    val timeout     = 10.minutes
+
+    val artifacts = data.map {
+      case PublishModule.PublishData(a, s) =>
+        (s.map { case (p, f) => (p.path, f) }, a)
+    }
+
+    val isRelease = {
+      val versions = artifacts.map(_._2.version).toSet
+      val set      = versions.map(!_.endsWith("-SNAPSHOT"))
+      assert(
+        set.size == 1,
+        s"Found both snapshot and non-snapshot versions: ${versions.toVector.sorted.mkString(", ")}"
+      )
+      set.head
+    }
+    val publisher = new scalalib.publish.SonatypePublisher(
+      uri = "https://oss.sonatype.org/service/local",
+      snapshotUri = "https://oss.sonatype.org/content/repositories/snapshots",
+      credentials = credentials,
+      signed = true,
+      // format: off
+      gpgArgs = Seq(
+        "--detach-sign",
+        "--batch=true",
+        "--yes",
+        "--pinentry-mode", "loopback",
+        "--passphrase", pgpPassword,
+        "--armor",
+        "--use-agent"
+      ),
+      // format: on
+      readTimeout = timeout.toMillis.toInt,
+      connectTimeout = timeout.toMillis.toInt,
+      log = log,
+      awaitTimeout = timeout.toMillis.toInt,
+      stagingRelease = isRelease
+    )
+
+    publisher.publishAll(isRelease, artifacts: _*)
+  }
 }
