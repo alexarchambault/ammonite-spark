@@ -64,7 +64,6 @@ class NotebookSparkSessionBuilder(implicit
 
     try {
       sendLogOpt = logFileOpt.map { f =>
-        println("See your browser developer console for detailed spark logs.")
         SendLog.start(f)
       }
 
