@@ -355,18 +355,21 @@ class AmmoniteSparkSessionBuilder(implicit
     if (sendSparkYarnJars0 && isYarn())
       config("spark.yarn.jars", sparkJars.map(_.toASCIIString).mkString(","))
 
-    if (sendSparkJars0) {
-      val sparkJarFileSet =
-        (sparkJars.iterator ++ sparkDistClassPath.map(_.toUri).iterator ++ ignoreJars0.iterator)
-          .map(normalize)
-          .toSet
+    lazy val sparkJarFileSet =
+      (sparkJars.iterator ++ sparkDistClassPath.map(_.toUri).iterator ++ ignoreJars0.iterator)
+        .map(normalize)
+        .toSet
+
+    def toBeSent(jars: Seq[URI]): Seq[URI] = {
       val nonSparkJars = jars.filter(uri => !sparkJarFileSet.contains(normalize(uri)))
       val nonSparkJars0 =
         if (sendSourceJars0) nonSparkJars
         else nonSparkJars.filter(uri => !uri.toASCIIString.endsWith("-sources.jar"))
-      val finalNonSparkJars = keepJars0.foldLeft(nonSparkJars0)(_.filter(_))
-      config("spark.jars", finalNonSparkJars.map(_.toASCIIString).mkString(","))
+      keepJars0.foldLeft(nonSparkJars0)(_.filter(_))
     }
+
+    if (sendSparkJars0)
+      config("spark.jars", toBeSent(jars).map(_.toASCIIString).mkString(","))
 
     if (interpApi != null)
       interpApi._compilerManager.outputDir match {
@@ -464,6 +467,17 @@ class AmmoniteSparkSessionBuilder(implicit
 
     if (forceProgressBars0)
       AmmoniteSparkSessionBuilder.forceProgressBars(session.sparkContext)
+
+    for (api <- Option(replApi))
+      api.sess.frames.head.addHook {
+        new ammonite.util.Frame.Hook {
+          def addClasspath(additional: Seq[URL]): Unit = {
+            val toBeSent0 = toBeSent(additional.map(_.toURI))
+            for (uri <- toBeSent0)
+              session.sparkContext.addJar(uri.toASCIIString)
+          }
+        }
+      }
 
     session
   }
