@@ -6,14 +6,14 @@ object Versions {
 
   def scala = Seq(scala213, scala212)
 
-  def ammonite      = "3.0.0-M0-32-96e851cb"
+  def ammonite      = "3.0.0-M0-38-dd60a0b5"
   def jsoniterScala = "2.13.5"
 }
 
 object Deps {
-  def ammoniteCompiler = ivy"com.lihaoyi:::ammonite-compiler:${Versions.ammonite}"
-  def ammoniteReplApi  = ivy"com.lihaoyi:::ammonite-repl-api:${Versions.ammonite}"
-  def ammoniteRepl     = ivy"com.lihaoyi:::ammonite-repl:${Versions.ammonite}"
+  def ammoniteCompiler = ivy"sh.almond.tmp.ammonite:::ammonite-compiler:${Versions.ammonite}"
+  def ammoniteReplApi  = ivy"sh.almond.tmp.ammonite:::ammonite-repl-api:${Versions.ammonite}"
+  def ammoniteRepl     = ivy"sh.almond.tmp.ammonite:::ammonite-repl:${Versions.ammonite}"
 
   def classPathUtil = ivy"io.get-coursier::class-path-util:0.1.4"
   def jettyServer   = ivy"org.eclipse.jetty:jetty-server:9.4.51.v20230217"

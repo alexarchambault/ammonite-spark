@@ -15,6 +15,10 @@ object NotebookSparkSession {
   ): NotebookSparkSessionBuilder =
     new NotebookSparkSessionBuilder
 
+  @deprecated(
+    "Calling this method isn't needed any more, new dependencies are passed to Spark executors automatically",
+    "0.14.0-RC1"
+  )
   def sync(session: SparkSession = null)(implicit replApi: ReplAPI): SparkSession =
     AmmoniteSparkSession.sync(session)
 

@@ -72,10 +72,6 @@ You can then run Spark calculations, like
 @ val n = rdd.map(_ + 1).sum()
 ```
 
-### Syncing dependencies
-
-If extra dependencies are loaded, via ``import $ivy.`…` `` after the `SparkSession` has been created, one should call `AmmoniteSparkSession.sync()` for the newly added JARs to be passed to the Spark executors.
-
 ## Using with standalone cluster
 
 Simply set the master to `spark://…` when building the session, e.g.
