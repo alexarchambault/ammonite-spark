@@ -549,8 +549,6 @@ class SparkReplTests(
           """
               @ import $ivy.`com.twitter::algebird-spark:0.13.5`
 
-              @ AmmoniteSparkSession.sync()
-
               @ import com.twitter.algebird.Semigroup
               import com.twitter.algebird.Semigroup
 
