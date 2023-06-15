@@ -86,23 +86,46 @@ object AmmoniteSparkSessionBuilder {
       javaDirs.exists(path.startsWith)
     }
 
-  def forceProgressBars(sc: SparkContext): Boolean =
-    sc.progressBar.nonEmpty || {
+  def trySetProgressBars(sc: SparkContext, value: Option[ConsoleProgressBar]): Boolean = {
+    def attempt(methodName: String): Boolean =
       try {
         val method = classOf[org.apache.spark.SparkContext]
           .getDeclaredMethod(
-            "org$apache$spark$SparkContext$$_progressBar_$eq",
+            methodName,
             classOf[Option[Any]]
           )
         method.setAccessible(true)
-        method.invoke(sc, Some(new ConsoleProgressBar(sc)))
+        method.invoke(sc, value)
         true
       }
       catch {
         case _: NoSuchMethodException =>
           false
       }
-    }
+
+    attempt("org$apache$spark$SparkContext$$_progressBar_$eq") || attempt("_progressBar_$eq")
+  }
+
+  def tryGetProgressBars(sc: SparkContext): Option[Option[ConsoleProgressBar]] = {
+    def attempt(methodName: String): Option[Option[ConsoleProgressBar]] =
+      try {
+        val method = classOf[org.apache.spark.SparkContext].getDeclaredMethod(methodName)
+        method.setAccessible(true)
+        Some(method.invoke(sc).asInstanceOf[Option[ConsoleProgressBar]])
+      }
+      catch {
+        case _: NoSuchMethodException =>
+          None
+      }
+
+    attempt("org$apache$spark$SparkContext$$_progressBar").orElse(attempt("_progressBar"))
+  }
+
+  def forceProgressBars(sc: SparkContext): Boolean =
+    sc.progressBar.nonEmpty || trySetProgressBars(sc, Some(new ConsoleProgressBar(sc)))
+
+  def disableProgressBars(sc: SparkContext): Boolean =
+    sc.progressBar.isEmpty || trySetProgressBars(sc, None)
 
   def userAddedClassPath(cl: ClassLoader): Stream[Seq[URL]] =
     if (cl == null) Stream.empty
@@ -202,10 +225,16 @@ class AmmoniteSparkSessionBuilder(implicit
     this
   }
 
-  private var forceProgressBars0 = false
+  private var forceProgressBars0   = false
+  private var disableProgressBars0 = false
 
   def progressBars(force: Boolean = true): this.type = {
     forceProgressBars0 = force
+    this
+  }
+
+  def disableProgressBars(disable: Boolean = true): this.type = {
+    disableProgressBars0 = disable
     this
   }
 
@@ -462,6 +491,9 @@ class AmmoniteSparkSessionBuilder(implicit
       }
     }
 
+    if (disableProgressBars0)
+      config("spark.ui.showConsoleProgress", false)
+
     printLine("Creating SparkSession")
     val session = super.getOrCreate()
 
@@ -484,6 +516,8 @@ class AmmoniteSparkSessionBuilder(implicit
 
     if (forceProgressBars0)
       AmmoniteSparkSessionBuilder.forceProgressBars(session.sparkContext)
+    if (disableProgressBars0)
+      AmmoniteSparkSessionBuilder.disableProgressBars(session.sparkContext)
 
     for (api <- Option(replApi))
       api.sess.frames.head.addHook {

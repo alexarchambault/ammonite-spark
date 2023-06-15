@@ -26,6 +26,8 @@ class NotebookSparkSessionBuilder(implicit
     else
       publish.html(htmlLine)
 
+  disableProgressBars(true)
+
   private var progress0 = true
   private var keep0     = true
 
