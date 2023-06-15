@@ -20,14 +20,28 @@ class NotebookSparkSessionBuilder(implicit
   commHandler: CommHandler
 ) extends AmmoniteSparkSessionBuilder {
 
+  override def printLine(line: String, htmlLine: String = null): Unit =
+    if (htmlLine == null)
+      publish.html(line + System.lineSeparator())
+    else
+      publish.html(htmlLine)
+
+  disableProgressBars(true)
+
   private var progress0 = true
-  private var keep0     = true
+  private var keep0     = false
+  private var useBars0  = false
 
   private var logsInDeveloperConsoleOpt = Option.empty[Boolean]
 
-  def progress(enable: Boolean = true, keep: Boolean = true): this.type = {
+  def progress(
+    enable: Boolean = true,
+    keep: Boolean = false,
+    useBars: Boolean = false
+  ): this.type = {
     progress0 = enable
     keep0 = keep
+    useBars0 = useBars
     this
   }
 
@@ -73,7 +87,7 @@ class NotebookSparkSessionBuilder(implicit
         html(s"""<a target="_blank" href="$url">Spark UI</a>""")
 
       session.sparkContext.addSparkListener(
-        new ProgressSparkListener(session, keep0, progress0)
+        new ProgressSparkListener(session, keep0, progress0, useBars0)
       )
 
       session
