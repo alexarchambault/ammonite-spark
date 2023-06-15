@@ -83,7 +83,17 @@ class NotebookSparkSessionBuilder(implicit
 
       val session = super.getOrCreate()
 
-      for (url <- session.sparkContext.uiWebUrl)
+      val reverseProxyUrlOpt = session.sparkContext.getConf.getOption("spark.ui.reverseProxyUrl")
+        .filter { _ =>
+          session.sparkContext.getConf.getOption("spark.ui.reverseProxy").contains("true")
+        }
+      val uiUrlOpt = reverseProxyUrlOpt
+        .map { reverseProxyUrl =>
+          val appId = session.sparkContext.applicationId
+          s"$reverseProxyUrl/proxy/$appId"
+        }
+        .orElse(session.sparkContext.uiWebUrl)
+      for (url <- uiUrlOpt)
         html(s"""<a target="_blank" href="$url">Spark UI</a>""")
 
       session.sparkContext.addSparkListener(
