@@ -20,7 +20,8 @@ import scala.util.Try
 final class ProgressSparkListener(
   session: SparkSession,
   keep: Boolean,
-  progress: Boolean
+  progress: Boolean,
+  useBars: Boolean
 )(implicit
   publish: OutputHandler,
   commHandler: CommHandler
@@ -58,7 +59,7 @@ final class ProgressSparkListener(
   def newStageElem(stageId: Int, numTasks: Int, name: String, details: String): StageElem = {
 
     if (!elems.contains(stageId))
-      elems.putIfAbsent(stageId, new StageElem(stageId, numTasks, keep, name, details))
+      elems.putIfAbsent(stageId, new StageElem(stageId, numTasks, keep, name, details, useBars))
 
     elems.get(stageId)
   }
