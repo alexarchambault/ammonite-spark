@@ -1,9 +1,13 @@
 package org.apache.spark.sql.almondinternals
 
+import almond.interpreter.api.OutputHandler
+
+import java.util.concurrent.ThreadFactory
+import java.util.concurrent.ScheduledThreadPoolExecutor
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
-import almond.interpreter.api.OutputHandler
+import scala.concurrent.duration.DurationInt
 
 final class StageElem(stageId: Int, numTasks: Int, keep: Boolean, name: String, details: String) {
 
@@ -99,10 +103,42 @@ final class StageElem(stageId: Int, numTasks: Int, keep: Boolean, name: String, 
     )
 
     if (stageDone0 && !keep) {
-      Thread.sleep(3000) // Allow the user to see the completed bar before wiping it
-      publish.updateHtml("", id = titleDisplayId)
-      publish.updateHtml("", id = displayId)
+      // Allow the user to see the completed bar before wiping it
+      val delay = 3.seconds
+      val runnable: Runnable =
+        () =>
+          try {
+            publish.updateHtml("", id = titleDisplayId)
+            publish.updateHtml("", id = displayId)
+          }
+          catch {
+            case t: Throwable =>
+              System.err.println("Error while updating message")
+              t.printStackTrace(System.err)
+          }
+      StageElem.scheduler.schedule(runnable, delay.length, delay.unit)
     }
+  }
+
+}
+
+object StageElem {
+  private def keepAlive = 30.seconds
+  lazy val scheduler = {
+    val executor = new ScheduledThreadPoolExecutor(
+      1,
+      new ThreadFactory {
+        val count = new AtomicInteger
+        override def newThread(r: Runnable): Thread = {
+          val name = s"almond-spark-progress-${count.getAndIncrement()}"
+          val t    = new Thread(r, name)
+          t.setDaemon(true)
+          t
+        }
+      }
+    )
+    executor.setKeepAliveTime(keepAlive.length, keepAlive.unit)
+    executor
   }
 
 }
