@@ -29,11 +29,11 @@ class NotebookSparkSessionBuilder(implicit
   disableProgressBars(true)
 
   private var progress0 = true
-  private var keep0     = true
+  private var keep0     = false
 
   private var logsInDeveloperConsoleOpt = Option.empty[Boolean]
 
-  def progress(enable: Boolean = true, keep: Boolean = true): this.type = {
+  def progress(enable: Boolean = true, keep: Boolean = false): this.type = {
     progress0 = enable
     keep0 = keep
     this
