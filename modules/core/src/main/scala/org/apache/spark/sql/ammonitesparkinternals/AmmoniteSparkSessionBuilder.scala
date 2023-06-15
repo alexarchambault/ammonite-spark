@@ -137,6 +137,9 @@ class AmmoniteSparkSessionBuilder(implicit
 
   import AmmoniteSparkSessionBuilder.normalize
 
+  def printLine(line: String, htmlLine: String = null): Unit =
+    println(line)
+
   private val options0: scala.collection.Map[String, String] = {
 
     def fieldVia(name: String): Option[scala.collection.mutable.HashMap[String, String]] =
@@ -153,7 +156,10 @@ class AmmoniteSparkSessionBuilder(implicit
     fieldVia("org$apache$spark$sql$SparkSession$Builder$$options")
       .orElse(fieldVia("options"))
       .getOrElse {
-        println("Warning: can't read SparkSession Builder options (options field not found)")
+        printLine(
+          "Warning: can't read SparkSession Builder options (options field not found)",
+          "Warning: can't read <code>SparkSession</code> <code>Builder</code> options (<code>options</code> field not found)"
+        )
         Map.empty[String, String]
       }
   }
@@ -164,7 +170,10 @@ class AmmoniteSparkSessionBuilder(implicit
       envVar <- AmmoniteSparkSessionBuilder.confEnvVars
       path   <- sys.env.get(envVar)
     } {
-      println(s"Loading spark conf from ${AmmoniteSparkSessionBuilder.prettyDir(path)}")
+      printLine(
+        s"Loading spark conf from ${AmmoniteSparkSessionBuilder.prettyDir(path)}",
+        s"Loading spark conf from <code>${AmmoniteSparkSessionBuilder.prettyDir(path)}</code>"
+      )
       loadConf(path)
     }
 
@@ -261,7 +270,10 @@ class AmmoniteSparkSessionBuilder(implicit
       deps = ("spark-yarn", SparkDependencies.sparkYarnDependency) :: deps
 
     if (deps.nonEmpty) {
-      println(s"Loading ${deps.map(_._1).mkString(", ")}")
+      printLine(
+        s"Loading ${deps.map(_._1).mkString(", ")}",
+        s"Loading ${deps.map("<code>" + _._1 + "</code>").mkString(", ")}"
+      )
       interpApi.load.ivy(deps.map(_._2): _*)
     }
   }
@@ -321,7 +333,7 @@ class AmmoniteSparkSessionBuilder(implicit
 
     val (sparkJars, sparkDistClassPath) = sys.env.get("SPARK_HOME") match {
       case None =>
-        println("Getting spark JARs")
+        printLine("Getting spark JARs")
         val sparkJars0 =
           SparkDependencies.sparkJars(interpApi.repositories(), interpApi.resolutionHooks, Nil)
         (sparkJars0, Nil)
@@ -416,13 +428,16 @@ class AmmoniteSparkSessionBuilder(implicit
 
       hadoopConfDirOpt match {
         case None =>
-          println(
+          printLine(
             "Warning: core-site.xml not found in the classpath, and no hadoop conf found via HADOOP_CONF_DIR, " +
-              "YARN_CONF_DIR, or at /etc/hadoop/conf"
+              "YARN_CONF_DIR, or at /etc/hadoop/conf",
+            "Warning: <code>core-site.xml</code> not found in the classpath, and no hadoop conf found via <code>HADOOP_CONF_DIR</code>, " +
+              "<code>YARN_CONF_DIR</code>, or at <code>/etc/hadoop/conf</code>"
           )
         case Some(dir) =>
-          println(
-            s"Adding Hadoop conf dir ${AmmoniteSparkSessionBuilder.prettyDir(dir)} to classpath"
+          printLine(
+            s"Adding Hadoop conf dir ${AmmoniteSparkSessionBuilder.prettyDir(dir)} to classpath",
+            s"Adding Hadoop conf dir <code>${AmmoniteSparkSessionBuilder.prettyDir(dir)}<code> to classpath"
           )
           interpApi.load.cp(os.Path(dir))
       }
@@ -434,18 +449,20 @@ class AmmoniteSparkSessionBuilder(implicit
 
       hiveConfDirOpt match {
         case None =>
-          println(
-            "Warning: hive-site.xml not found in the classpath, and no Hive conf found via HIVE_CONF_DIR"
+          printLine(
+            "Warning: hive-site.xml not found in the classpath, and no Hive conf found via HIVE_CONF_DIR",
+            "Warning: <code>hive-site.xml</code> not found in the classpath, and no Hive conf found via <code>HIVE_CONF_DIR</code>"
           )
         case Some(dir) =>
-          println(
-            s"Adding Hive conf dir ${AmmoniteSparkSessionBuilder.prettyDir(dir)} to classpath"
+          printLine(
+            s"Adding Hive conf dir ${AmmoniteSparkSessionBuilder.prettyDir(dir)} to classpath",
+            s"Adding Hive conf dir <code>${AmmoniteSparkSessionBuilder.prettyDir(dir)}</code> to classpath"
           )
           interpApi.load.cp(os.Path(dir))
       }
     }
 
-    println("Creating SparkSession")
+    printLine("Creating SparkSession")
     val session = super.getOrCreate()
 
     if (interpApi != null)

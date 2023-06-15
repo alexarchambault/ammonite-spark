@@ -20,6 +20,12 @@ class NotebookSparkSessionBuilder(implicit
   commHandler: CommHandler
 ) extends AmmoniteSparkSessionBuilder {
 
+  override def printLine(line: String, htmlLine: String = null): Unit =
+    if (htmlLine == null)
+      publish.html(line + System.lineSeparator())
+    else
+      publish.html(htmlLine)
+
   private var progress0 = true
   private var keep0     = true
 
