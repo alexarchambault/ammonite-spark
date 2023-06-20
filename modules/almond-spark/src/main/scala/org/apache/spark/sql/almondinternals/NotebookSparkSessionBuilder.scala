@@ -20,6 +20,8 @@ class NotebookSparkSessionBuilder(implicit
   commHandler: CommHandler
 ) extends AmmoniteSparkSessionBuilder {
 
+  override def toString = "NotebookSparkSessionBuilder"
+
   override def printLine(line: String, htmlLine: String = null): Unit =
     if (htmlLine == null)
       publish.html(line + System.lineSeparator())
