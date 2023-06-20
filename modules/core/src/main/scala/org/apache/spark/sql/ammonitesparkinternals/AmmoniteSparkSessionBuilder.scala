@@ -158,6 +158,8 @@ class AmmoniteSparkSessionBuilder(implicit
   replApi: ReplAPI
 ) extends SparkSession.Builder {
 
+  override def toString = "AmmoniteSparkSessionBuilder"
+
   import AmmoniteSparkSessionBuilder.normalize
 
   def printLine(line: String, htmlLine: String = null): Unit =
