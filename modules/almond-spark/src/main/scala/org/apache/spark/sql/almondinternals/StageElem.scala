@@ -4,7 +4,6 @@ import almond.interpreter.api.OutputHandler
 
 import java.util.concurrent.ThreadFactory
 import java.util.concurrent.ScheduledThreadPoolExecutor
-import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 
 import scala.concurrent.duration.DurationInt
@@ -25,7 +24,7 @@ final class StageElem(
     else s"<code>${name.take(idx)}</code> at <code>${name.drop(idx + sep.length)}</code>"
   }
 
-  val displayId      = s"stage-info-${UUID.randomUUID()}"
+  val displayId      = s"stage-info-${Id.generate()}"
   val titleDisplayId = s"$displayId-title"
 
   val startedTasks = new AtomicInteger
