@@ -2,7 +2,6 @@ package org.apache.spark.sql.almondinternals
 
 import java.io.{BufferedReader, File, FileReader}
 import java.nio.file.{Files, StandardOpenOption}
-import java.util.UUID
 
 import almond.interpreter.api.{CommHandler, CommTarget, DisplayData, OutputHandler}
 
@@ -27,8 +26,8 @@ final class SendLog(
 
   assert(backOffFactor >= 1.0)
 
-  private val commTarget = UUID.randomUUID().toString
-  private val commId     = UUID.randomUUID().toString
+  private val commTarget = Id.generate()
+  private val commId     = Id.generate()
 
   @volatile private var gotAck      = false
   @volatile private var keepReading = true
@@ -194,7 +193,7 @@ object SendLog {
 
     lazy val sendLog = new SendLog(f, commHandler, prefix = Option(prefix))
 
-    val id = UUID.randomUUID().toString
+    val id = Id.generate()
     val data = DisplayData(
       Map(DisplayData.ContentType.text -> "", DisplayData.ContentType.html -> ""),
       idOpt = Some(id)

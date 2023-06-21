@@ -1,6 +1,5 @@
 package org.apache.spark.sql.almondinternals
 
-import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.{
   ConcurrentHashMap,
@@ -29,7 +28,7 @@ final class ProgressSparkListener(
 
   private val elems = new ConcurrentHashMap[Int, StageElem]
 
-  private val commTargetName = s"cancel-stage-${UUID.randomUUID()}"
+  private val commTargetName = s"cancel-stage-${Id.generate()}"
 
   private var sentInitCode = false
 
