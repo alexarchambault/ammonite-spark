@@ -6,7 +6,7 @@ object ToreeSql {
 
   private def sqlMagic(content: String): String = {
     val tq = "\"\"\""
-    s"""_root_.almond.display.Html(_root_.almond.dfrenderer.AlmondDataFrameRenderer.render(spark.sql($tq$content$tq), limit = $sqlLimit))"""
+    s"""_root_.almond.display.Html(_root_.almond.spark.DataFrameRenderer.render(spark.sql($tq$content$tq), limit = $sqlLimit))"""
   }
 
   def setup(): Unit = {
