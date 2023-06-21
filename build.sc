@@ -287,6 +287,29 @@ class AlmondSpark(val crossScalaVersion: String) extends CrossSbtModule with Amm
   }
 }
 
+object `almond-toree-spark` extends Cross[AlmondToreeSpark](Versions.scala: _*)
+class AlmondToreeSpark(val crossScalaVersion: String) extends CrossSbtModule
+    with AmmSparkPublishModule
+    with AmmSparkMima {
+  def moduleDeps = super.moduleDeps ++ Seq(
+    `almond-spark`()
+  )
+  def ivyDeps = super.ivyDeps() ++ Agg(
+    Deps.almondToreeHooks
+  )
+  def compileIvyDeps = super.compileIvyDeps() ++ Agg(
+    Deps.scalaKernelApi
+      .exclude(("com.lihaoyi", s"ammonite-compiler_$crossScalaVersion"))
+      .exclude(("com.lihaoyi", s"ammonite-repl-api_$crossScalaVersion")),
+    Deps.sparkSql(scalaVersion())
+  )
+  def repositoriesTask = T.task {
+    super.repositoriesTask() ++ Seq(
+      coursier.Repositories.jitpack
+    )
+  }
+}
+
 def publishSonatype(tasks: mill.main.Tasks[PublishModule.PublishData]) = T.command {
   publishSonatype0(
     data = define.Target.sequence(tasks.value)(),
