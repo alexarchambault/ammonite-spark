@@ -277,6 +277,7 @@ class AlmondSpark(val crossScalaVersion: String) extends CrossSbtModule with Amm
     Deps.scalaKernelApi
       .exclude(("com.lihaoyi", s"ammonite-compiler_$crossScalaVersion"))
       .exclude(("com.lihaoyi", s"ammonite-repl-api_$crossScalaVersion")),
+    Deps.scalatags,
     Deps.sparkSql(scalaVersion())
   )
   def repositoriesTask = T.task {
