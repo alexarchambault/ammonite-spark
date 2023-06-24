@@ -13,8 +13,8 @@ import java.util.Arrays
 import scala.concurrent.duration.DurationInt
 
 // Tell mill modules are under modules/
-implicit def millModuleBasePath: define.BasePath =
-  define.BasePath(super.millModuleBasePath.value / "modules")
+implicit def millModuleBasePath: define.Ctx.BasePath =
+  define.Ctx.BasePath(super.millModuleBasePath.value / "modules")
 
 trait AmmSparkPublishModule extends PublishModule {
   import mill.scalalib.publish._
@@ -84,7 +84,7 @@ trait WithPropertyFile extends JavaModule {
   }
 }
 
-trait WithDependencyResourceFile extends JavaModule {
+trait WithDependencyResourceFile extends ScalaModule {
   def dependencyResourcePath: os.SubPath
 
   def dependencyFileResources = T.persistent {
@@ -92,11 +92,16 @@ trait WithDependencyResourceFile extends JavaModule {
     val dir  = T.dest / "dep-file"
     val dest = dir / dependencyResourcePath
 
-    val deps0 = T.task(compileIvyDeps() ++ transitiveIvyDeps())()
+    val deps0 = T.task {
+      val sv                 = scalaVersion()
+      val compileIvyDeps0    = compileIvyDeps().map(Lib.depToBoundDep(_, sv))
+      val transitiveIvyDeps0 = transitiveIvyDeps()
+      compileIvyDeps0 ++ transitiveIvyDeps0
+    }()
     val (_, res) = mill.modules.Jvm.resolveDependenciesMetadata(
       repositoriesTask(),
-      deps0.map(resolveCoursierDependency().apply(_)),
-      deps0.filter(_.force).map(resolveCoursierDependency().apply(_)),
+      deps0.map(_.dep),
+      deps0.filter(_.force).map(_.dep),
       mapDependencies = Some(mapDependencies())
     )
 
@@ -137,16 +142,16 @@ object `spark-stubs_30` extends SbtModule with AmmSparkPublishModule {
   )
 }
 
-object `spark-stubs_32`                           extends Cross[SparkStubs32](Versions.scala: _*)
-class SparkStubs32(val crossScalaVersion: String) extends CrossSbtModule
+object `spark-stubs_32` extends Cross[SparkStubs32](Versions.scala)
+trait SparkStubs32      extends CrossSbtModule
     with AmmSparkPublishModule {
   def ivyDeps = super.ivyDeps() ++ Agg(
     Deps.sparkSql32
   )
 }
 
-object core                               extends Cross[Core](Versions.scala: _*)
-class Core(val crossScalaVersion: String) extends CrossSbtModule with WithPropertyFile
+object core extends Cross[Core](Versions.scala)
+trait Core  extends CrossSbtModule with WithPropertyFile
     with AmmSparkPublishModule with AmmSparkMima {
   def artifactName = "ammonite-spark"
   def compileIvyDeps = super.compileIvyDeps() ++ Agg(
@@ -201,13 +206,8 @@ class Core(val crossScalaVersion: String) extends CrossSbtModule with WithProper
   }
 }
 
-trait AmmSparkTests extends TestModule {
-  def testFramework = "utest.runner.Framework"
-  def forkArgs      = super.forkArgs() ++ Seq("-Xmx3g", "-Dfoo=bzz")
-}
-
-object tests                               extends Cross[Tests](Versions.scala: _*)
-class Tests(val crossScalaVersion: String) extends CrossSbtModule with WithPropertyFile
+object tests extends Cross[Tests](Versions.scala)
+trait Tests  extends CrossSbtModule with WithPropertyFile
     with WithDependencyResourceFile {
   def propertyFilePath       = os.sub / "ammonite" / "ammonite-spark.properties"
   def versionInProperties    = core().publishVersion()
@@ -219,7 +219,10 @@ class Tests(val crossScalaVersion: String) extends CrossSbtModule with WithPrope
     Deps.utest
   )
 
-  object test extends Tests with AmmSparkTests
+  object test extends CrossSbtModuleTests {
+    def testFramework = "utest.runner.Framework"
+    def forkArgs      = Seq("-Xmx3g", "-Dfoo=bzz")
+  }
 }
 
 object `local-spark-distrib-tests` extends SbtModule {
@@ -229,7 +232,10 @@ object `local-spark-distrib-tests` extends SbtModule {
     tests(sv)
   )
 
-  object test extends Tests with AmmSparkTests
+  object test extends SbtModuleTests {
+    def testFramework = "utest.runner.Framework"
+    def forkArgs      = Seq("-Xmx3g", "-Dfoo=bzz")
+  }
 }
 
 object `standalone-tests` extends SbtModule {
@@ -239,16 +245,22 @@ object `standalone-tests` extends SbtModule {
     tests(sv)
   )
 
-  object test extends Tests with AmmSparkTests
+  object test extends SbtModuleTests {
+    def testFramework = "utest.runner.Framework"
+    def forkArgs      = Seq("-Xmx3g", "-Dfoo=bzz")
+  }
 }
 
-object `yarn-tests` extends Cross[YarnTests](Versions.scala: _*)
-class YarnTests(val crossScalaVersion: String) extends CrossSbtModule {
+object `yarn-tests` extends Cross[YarnTests](Versions.scala)
+trait YarnTests extends CrossSbtModule {
   def moduleDeps = super.moduleDeps ++ Seq(
     tests()
   )
 
-  object test extends Tests with AmmSparkTests
+  object test extends CrossSbtModuleTests {
+    def testFramework = "utest.runner.Framework"
+    def forkArgs      = Seq("-Xmx3g", "-Dfoo=bzz")
+  }
 }
 
 object `yarn-spark-distrib-tests` extends SbtModule {
@@ -258,11 +270,14 @@ object `yarn-spark-distrib-tests` extends SbtModule {
     tests(sv)
   )
 
-  object test extends Tests with AmmSparkTests
+  object test extends SbtModuleTests {
+    def testFramework = "utest.runner.Framework"
+    def forkArgs      = Seq("-Xmx3g", "-Dfoo=bzz")
+  }
 }
 
-object `almond-spark`                            extends Cross[AlmondSpark](Versions.scala: _*)
-class AlmondSpark(val crossScalaVersion: String) extends CrossSbtModule with AmmSparkPublishModule
+object `almond-spark` extends Cross[AlmondSpark](Versions.scala)
+trait AlmondSpark     extends CrossSbtModule with AmmSparkPublishModule
     with AmmSparkMima {
   def moduleDeps = super.moduleDeps ++ Seq(
     core()
@@ -287,8 +302,8 @@ class AlmondSpark(val crossScalaVersion: String) extends CrossSbtModule with Amm
   }
 }
 
-object `almond-toree-spark` extends Cross[AlmondToreeSpark](Versions.scala: _*)
-class AlmondToreeSpark(val crossScalaVersion: String) extends CrossSbtModule
+object `almond-toree-spark` extends Cross[AlmondToreeSpark](Versions.scala)
+trait AlmondToreeSpark      extends CrossSbtModule
     with AmmSparkPublishModule
     with AmmSparkMima {
   def moduleDeps = super.moduleDeps ++ Seq(
@@ -308,13 +323,6 @@ class AlmondToreeSpark(val crossScalaVersion: String) extends CrossSbtModule
       coursier.Repositories.jitpack
     )
   }
-}
-
-def publishSonatype(tasks: mill.main.Tasks[PublishModule.PublishData]) = T.command {
-  publishSonatype0(
-    data = define.Target.sequence(tasks.value)(),
-    log = T.ctx().log
-  )
 }
 
 def publishSonatype0(
@@ -364,4 +372,15 @@ def publishSonatype0(
   )
 
   publisher.publishAll(isRelease, artifacts: _*)
+}
+
+object ci extends Module {
+
+  def publishSonatype(tasks: mill.main.Tasks[PublishModule.PublishData]) = T.command {
+    publishSonatype0(
+      data = define.Target.sequence(tasks.value)(),
+      log = T.ctx().log
+    )
+  }
+
 }
