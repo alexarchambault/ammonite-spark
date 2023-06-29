@@ -3,6 +3,7 @@ package org.apache.spark.sql.almondinternals
 import java.io.File
 import java.lang.{Boolean => JBoolean}
 
+import almond.api.JupyterApi
 import almond.interpreter.api.{CommHandler, OutputHandler}
 import almond.display.Display.html
 import ammonite.interp.api.InterpAPI
@@ -19,7 +20,8 @@ class NotebookSparkSessionBuilder(implicit
   interpApi: InterpAPI,
   replApi: ReplAPI,
   publish: OutputHandler,
-  commHandler: CommHandler
+  commHandler: CommHandler,
+  jupyterApi: JupyterApi
 ) extends AmmoniteSparkSessionBuilder {
 
   override def toString = "NotebookSparkSessionBuilder"
@@ -37,6 +39,11 @@ class NotebookSparkSessionBuilder(implicit
   private var useBars0  = false
 
   private var logsInDeveloperConsoleOpt = Option.empty[Boolean]
+  private var logsInKernelOutputOpt     = Option.empty[Boolean]
+
+  private def defaultLogsInKernelOutput() =
+    Option(System.getenv("ALMOND_SPARK_LOGS_IN_KERNEL_OUTPUT"))
+      .exists(v => v == "1" || v == "true")
 
   def progress(
     enable: Boolean = true,
@@ -51,6 +58,11 @@ class NotebookSparkSessionBuilder(implicit
 
   def logsInDeveloperConsole(enable: JBoolean = null): this.type = {
     logsInDeveloperConsoleOpt = Option[JBoolean](enable).map[Boolean](x => x)
+    this
+  }
+
+  def logsInKernelOutput(enable: JBoolean = null): this.type = {
+    logsInKernelOutputOpt = Option[JBoolean](enable).map[Boolean](x => x)
     this
   }
 
@@ -78,12 +90,22 @@ class NotebookSparkSessionBuilder(implicit
         defaultLogFileOpt
     }
 
-    var sendLogOpt = Option.empty[SendLog]
+    var sendLogOpt          = Option.empty[SendLog]
+    var sendLogToConsoleOpt = Option.empty[SendLogToConsole]
 
     try {
       sendLogOpt = logFileOpt.map { f =>
         SendLog.start(f)
       }
+
+      if (logsInKernelOutputOpt.contains(true) && defaultLogFileOpt.isEmpty)
+        Console.err.println(
+          "Warning: cannot determine log file, logs won't be sent to the kernel console."
+        )
+      if (logsInKernelOutputOpt.getOrElse(defaultLogsInKernelOutput()))
+        sendLogToConsoleOpt = defaultLogFileOpt.map { f =>
+          SendLogToConsole.start(f)
+        }
 
       val session = super.getOrCreate()
 
@@ -106,8 +128,10 @@ class NotebookSparkSessionBuilder(implicit
 
       session.sparkContext.addSparkListener(
         new SparkListener {
-          override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd) =
+          override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd) = {
             sendLogOpt.foreach(_.stop())
+            sendLogToConsoleOpt.foreach(_.stop())
+          }
         }
       )
 
@@ -116,6 +140,7 @@ class NotebookSparkSessionBuilder(implicit
     catch {
       case NonFatal(e) =>
         sendLogOpt.foreach(_.stop())
+        sendLogToConsoleOpt.foreach(_.stop())
         throw e
     }
   }

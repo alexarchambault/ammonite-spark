@@ -1,5 +1,6 @@
 package org.apache.spark.sql
 
+import almond.api.JupyterApi
 import almond.interpreter.api.{CommHandler, OutputHandler}
 import ammonite.repl.api.ReplAPI
 import ammonite.interp.api.InterpAPI
@@ -11,7 +12,8 @@ object NotebookSparkSession {
     interpApi: InterpAPI,
     replApi: ReplAPI,
     publish: OutputHandler,
-    commHandler: CommHandler
+    commHandler: CommHandler,
+    jupyterApi: JupyterApi
   ): NotebookSparkSessionBuilder =
     new NotebookSparkSessionBuilder
 
