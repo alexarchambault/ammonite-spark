@@ -8,10 +8,12 @@ import almond.display.Display.html
 import ammonite.interp.api.InterpAPI
 import ammonite.repl.api.ReplAPI
 import org.apache.log4j.{Category, Logger, RollingFileAppender}
+import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.ammonitesparkinternals.AmmoniteSparkSessionBuilder
 
 import scala.collection.JavaConverters._
+import scala.util.control.NonFatal
 
 class NotebookSparkSessionBuilder(implicit
   interpApi: InterpAPI,
@@ -102,10 +104,20 @@ class NotebookSparkSessionBuilder(implicit
         new ProgressSparkListener(session, keep0, progress0, useBars0)
       )
 
+      session.sparkContext.addSparkListener(
+        new SparkListener {
+          override def onApplicationEnd(applicationEnd: SparkListenerApplicationEnd) =
+            sendLogOpt.foreach(_.stop())
+        }
+      )
+
       session
     }
-    finally
-      sendLogOpt.foreach(_.stop())
+    catch {
+      case NonFatal(e) =>
+        sendLogOpt.foreach(_.stop())
+        throw e
+    }
   }
 
 }
