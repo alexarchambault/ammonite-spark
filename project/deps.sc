@@ -6,7 +6,7 @@ object Versions {
 
   def scala = Seq(scala213, scala212)
 
-  def almond        = "0.14.0-RC12"
+  def almond        = "0.14.0-RC13"
   def ammonite      = "3.0.0-M0-67-83057fea"
   def jsoniterScala = "2.13.5"
 }
@@ -18,7 +18,7 @@ object Deps {
   def ammoniteRepl     = ivy"sh.almond.tmp.ammonite:::ammonite-repl:${Versions.ammonite}"
 
   def classPathUtil = ivy"io.get-coursier::class-path-util:0.1.4"
-  def jettyServer   = ivy"org.eclipse.jetty:jetty-server:9.4.51.v20230217"
+  def jettyServer   = ivy"org.eclipse.jetty:jetty-server:9.4.54.v20240208"
   def jsoniterScalaCore =
     ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-core:${Versions.jsoniterScala}"
   def jsoniterScalaMacros =
@@ -34,5 +34,5 @@ object Deps {
   }
   def sparkSql3  = ivy"org.apache.spark::spark-sql:3.0.0"
   def sparkSql32 = ivy"org.apache.spark::spark-sql:3.2.0"
-  def utest      = ivy"com.lihaoyi::utest:0.8.1"
+  def utest      = ivy"com.lihaoyi::utest:0.8.2"
 }
