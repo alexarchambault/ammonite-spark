@@ -366,8 +366,10 @@ class AmmoniteSparkSessionBuilder(implicit
       case None =>
         printLine("Getting spark JARs")
         val sparkJars0 =
-          SparkDependencies.sparkJars(interpApi.repositories(), interpApi.resolutionHooks, Nil)
-        (sparkJars0, Nil)
+          SparkDependencies.sparkJars(interpApi.repositories(), interpApi.resolutionHooks, Nil)(
+            sparkJars0,
+            Nil
+          )
       case Some(sparkHome) =>
         // Loose attempt at using the scala JARs already loaded in Ammonite,
         // rather than ones from the spark distribution.
