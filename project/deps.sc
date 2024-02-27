@@ -1,7 +1,7 @@
 import mill.scalalib._
 
 object Versions {
-  def scala212 = "2.12.11"
+  def scala212 = "2.12.19"
   def scala213 = "2.13.11"
 
   def scala = Seq(scala213, scala212)
