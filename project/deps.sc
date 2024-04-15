@@ -25,7 +25,7 @@ object Deps {
     ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros:${Versions.jsoniterScala}"
   def log4j2         = ivy"org.apache.logging.log4j:log4j-core:2.17.2"
   def scalaKernelApi = ivy"sh.almond:::scala-kernel-api:${Versions.almond}"
-  def scalatags      = ivy"com.lihaoyi::scalatags:0.12.0"
+  def scalatags      = ivy"com.lihaoyi::scalatags:0.13.1"
   def sparkSql(sv: String) = {
     val ver =
       if (sv.startsWith("2.12.")) "2.4.0"
