@@ -29,8 +29,9 @@ object Init {
 
             @ assert(org.apache.spark.SPARK_VERSION == "$sparkVersion") // sanity check
 
-            @ val spark = AmmoniteSparkSession.builder()${prependBuilderCalls.mkString}.appName("test-ammonite-spark").master("$master")${conf.map(
-            t => s".config($q${t._1}$q, $q${t._2}$q)"
+            @ val spark = AmmoniteSparkSession.builder()${prependBuilderCalls
+            .mkString}.appName("test-ammonite-spark").master("$master")${conf.map(t =>
+            s".config($q${t._1}$q, $q${t._2}$q)"
           ).mkString}.getOrCreate()
 
             @ def sc = spark.sparkContext"""
@@ -56,8 +57,9 @@ object Init {
        |
        |assert(org.apache.spark.SPARK_VERSION == "$sparkVersion") // sanity check
        |
-       |val spark = AmmoniteSparkSession.builder()${prependBuilderCalls.mkString}.appName("test-ammonite-spark").master("$master")${conf.map(
-        t => s".config($q${t._1}$q, $q${t._2}$q)"
+       |val spark = AmmoniteSparkSession.builder()${prependBuilderCalls
+        .mkString}.appName("test-ammonite-spark").master("$master")${conf.map(t =>
+        s".config($q${t._1}$q, $q${t._2}$q)"
       ).mkString}.getOrCreate()
        |def sc = spark.sparkContext
        |""".stripMargin
