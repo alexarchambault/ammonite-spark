@@ -19,8 +19,8 @@ implicit def millModuleBasePath: define.BasePath =
 trait AmmSparkPublishModule extends PublishModule {
   import mill.scalalib.publish._
   def publishVersion = T {
-    val v        = VcsVersion.vcsState().format()
-    val dirtyIdx = v.indexOf("-DIRTY")
+    val v                  = VcsVersion.vcsState().format()
+    val dirtyIdx           = v.indexOf("-DIRTY")
     def endsWithCommitHash =
       v.length > 6 && v.substring(v.length - 6).forall(c => c.isDigit || (c >= 'a' && c <= 'f'))
     if (dirtyIdx >= 0) v.take(dirtyIdx) + "-SNAPSHOT"
@@ -92,7 +92,7 @@ trait WithDependencyResourceFile extends JavaModule {
     val dir  = T.dest / "dep-file"
     val dest = dir / dependencyResourcePath
 
-    val deps0 = T.task(compileIvyDeps() ++ transitiveIvyDeps())()
+    val deps0    = T.task(compileIvyDeps() ++ transitiveIvyDeps())()
     val (_, res) = mill.modules.Jvm.resolveDependenciesMetadata(
       repositoriesTask(),
       deps0.map(resolveCoursierDependency().apply(_)),
@@ -125,14 +125,14 @@ trait WithDependencyResourceFile extends JavaModule {
 
 object `spark-stubs_24` extends SbtModule with AmmSparkPublishModule {
   def scalaVersion = Versions.scala212
-  def ivyDeps = super.ivyDeps() ++ Agg(
+  def ivyDeps      = super.ivyDeps() ++ Agg(
     Deps.sparkSql(scalaVersion())
   )
 }
 
 object `spark-stubs_30` extends SbtModule with AmmSparkPublishModule {
   def scalaVersion = Versions.scala212
-  def ivyDeps = super.ivyDeps() ++ Agg(
+  def ivyDeps      = super.ivyDeps() ++ Agg(
     Deps.sparkSql3
   )
 }
@@ -148,7 +148,7 @@ class SparkStubs32(val crossScalaVersion: String) extends CrossSbtModule
 object core                               extends Cross[Core](Versions.scala: _*)
 class Core(val crossScalaVersion: String) extends CrossSbtModule with WithPropertyFile
     with AmmSparkPublishModule with AmmSparkMima {
-  def artifactName = "ammonite-spark"
+  def artifactName   = "ammonite-spark"
   def compileIvyDeps = super.compileIvyDeps() ++ Agg(
     Deps.ammoniteReplApi,
     Deps.sparkSql(scalaVersion())
@@ -160,7 +160,7 @@ class Core(val crossScalaVersion: String) extends CrossSbtModule with WithProper
   def propertyFilePath =
     os.sub / "org" / "apache" / "spark" / "sql" / "ammonitesparkinternals" / "ammonite-spark.properties"
   def versionInProperties = publishVersion()
-  def propResourcesDir = T.persistent {
+  def propResourcesDir    = T.persistent {
     import sys.process._
 
     val dir = T.dest / "property-resources"
@@ -225,7 +225,7 @@ class Tests(val crossScalaVersion: String) extends CrossSbtModule with WithPrope
 object `local-spark-distrib-tests` extends SbtModule {
   private def sv   = Versions.scala212
   def scalaVersion = sv
-  def moduleDeps = super.moduleDeps ++ Seq(
+  def moduleDeps   = super.moduleDeps ++ Seq(
     tests(sv)
   )
 
@@ -235,14 +235,14 @@ object `local-spark-distrib-tests` extends SbtModule {
 object `standalone-tests` extends SbtModule {
   private def sv   = Versions.scala212
   def scalaVersion = sv
-  def moduleDeps = super.moduleDeps ++ Seq(
+  def moduleDeps   = super.moduleDeps ++ Seq(
     tests(sv)
   )
 
   object test extends Tests with AmmSparkTests
 }
 
-object `yarn-tests` extends Cross[YarnTests](Versions.scala: _*)
+object `yarn-tests`                            extends Cross[YarnTests](Versions.scala: _*)
 class YarnTests(val crossScalaVersion: String) extends CrossSbtModule {
   def moduleDeps = super.moduleDeps ++ Seq(
     tests()
@@ -254,7 +254,7 @@ class YarnTests(val crossScalaVersion: String) extends CrossSbtModule {
 object `yarn-spark-distrib-tests` extends SbtModule {
   private def sv   = Versions.scala212
   def scalaVersion = sv
-  def moduleDeps = super.moduleDeps ++ Seq(
+  def moduleDeps   = super.moduleDeps ++ Seq(
     tests(sv)
   )
 
