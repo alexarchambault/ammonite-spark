@@ -1,6 +1,6 @@
 import $file.project.deps, deps.{Deps, Versions}
 
-import $ivy.`com.github.lolgab::mill-mima::0.1.0`
+import $ivy.`com.github.lolgab::mill-mima::0.1.1`
 import $ivy.`de.tototec::de.tobiasroeser.mill.vcs.version::0.4.1`
 
 import com.github.lolgab.mill.mima.Mima
