@@ -28,7 +28,7 @@ jobs:
       with:
         extraFiles: "[\".github/scripts/*\", \".github/workflows/ci.yml\", \"*.sh\"]"
         extraKey: test-${{ matrix.MASTER }}
-    - uses: coursier/setup-action@v1.3
+    - uses: coursier/setup-action@v2.0
       with:
         jvm: 8
     - run: .github/scripts/test.sh
@@ -53,7 +53,7 @@ jobs:
       with:
         fetch-depth: 0
         submodules: true
-    - uses: coursier/setup-action@v1.3
+    - uses: coursier/setup-action@v2.0
       with:
         jvm: "temurin:17"
         apps: scalafmt:3.0.0
