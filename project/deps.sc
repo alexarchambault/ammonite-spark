@@ -18,7 +18,7 @@ object Deps {
   def ammoniteRepl     = ivy"sh.almond.tmp.ammonite:::ammonite-repl:${Versions.ammonite}"
 
   def classPathUtil = ivy"io.get-coursier::class-path-util:0.1.4"
-  def jettyServer   = ivy"org.eclipse.jetty:jetty-server:9.4.58.v20250814"
+  def jettyServer   = ivy"org.eclipse.jetty:jetty-server:12.1.5"
   def jsoniterScalaCore =
     ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-core:${Versions.jsoniterScala}"
   def jsoniterScalaMacros =
