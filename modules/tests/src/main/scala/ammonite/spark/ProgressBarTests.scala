@@ -22,7 +22,7 @@ class ProgressBarTests(sparkVersion: String, master: String, conf: (String, Stri
 
   val tests = Tests {
 
-    "dummy test" - {
+    "dummy test" -
       sparkSession(
         if (interactive)
           """
@@ -47,7 +47,6 @@ class ProgressBarTests(sparkVersion: String, master: String, conf: (String, Stri
             @ val rdd = spark.sparkContext.makeRDD(1 to 10000, 200)
          """
       )
-    }
 
   }
 

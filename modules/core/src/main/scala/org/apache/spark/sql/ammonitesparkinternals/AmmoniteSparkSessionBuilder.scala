@@ -404,7 +404,7 @@ class AmmoniteSparkSessionBuilder(implicit
         .toSet
 
     def toBeSent(jars: Seq[URI]): Seq[URI] = {
-      val nonSparkJars = jars.filter(uri => !sparkJarFileSet.contains(normalize(uri)))
+      val nonSparkJars  = jars.filter(uri => !sparkJarFileSet.contains(normalize(uri)))
       val nonSparkJars0 =
         if (sendSourceJars0) nonSparkJars
         else nonSparkJars.filter(uri => !uri.toASCIIString.endsWith("-sources.jar"))
