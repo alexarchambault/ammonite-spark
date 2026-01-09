@@ -34,5 +34,5 @@ object Deps {
   }
   def sparkSql3  = ivy"org.apache.spark::spark-sql:3.0.0"
   def sparkSql32 = ivy"org.apache.spark::spark-sql:3.2.0"
-  def utest      = ivy"com.lihaoyi::utest:0.8.9"
+  def utest      = ivy"com.lihaoyi::utest:0.9.5"
 }
