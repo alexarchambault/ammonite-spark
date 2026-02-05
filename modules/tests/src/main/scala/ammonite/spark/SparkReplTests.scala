@@ -66,7 +66,7 @@ class SparkReplTests(
     // Beware that indentation of the session snippets is super sensitive.
     // All snippets should have the exact same indentation.
 
-    "simple foreach with accumulator" - {
+    "simple foreach with accumulator" -
       sparkSession(
         """
             @ val accum = sc.longAccumulator
@@ -78,9 +78,8 @@ class SparkReplTests(
             res: java.lang.Long = 55L
          """
       )
-    }
 
-    "external vars" - {
+    "external vars" -
       sparkSession(
         """
             @ var v = 7
@@ -95,9 +94,8 @@ class SparkReplTests(
             res2: Int = 100
          """
       )
-    }
 
-    "external classes" - {
+    "external classes" -
       sparkSession(
         """
             @ class C {
@@ -109,9 +107,8 @@ class SparkReplTests(
             res: Int = 50
          """
       )
-    }
 
-    "external functions" - {
+    "external functions" -
       sparkSession(
         """
             @ def double(x: Int) = x + x
@@ -121,9 +118,8 @@ class SparkReplTests(
             res: Int = 110
          """
       )
-    }
 
-    "external functions that access vars" - {
+    "external functions that access vars" -
       sparkSession(
         """
             @ var v = 7
@@ -141,7 +137,6 @@ class SparkReplTests(
             res2: Int = 100
          """
       )
-    }
 
     def hasBroadcastIssue =
       master == "local" || master.startsWith("local[")
@@ -219,7 +214,7 @@ class SparkReplTests(
       )
     }
 
-    "SPARK-2452 compound statements" - {
+    "SPARK-2452 compound statements" -
       sparkSession(
         """
             @ val x = 4 ; def f() = x
@@ -230,7 +225,6 @@ class SparkReplTests(
             resFoo: Int = 4
         """
       )
-    }
 
     "SPARK-2576 importing implicits" - {
       val fieldNamePart = if (is212) "" else "value = "
@@ -252,7 +246,7 @@ class SparkReplTests(
       )
     }
 
-    "Datasets and encoders" - {
+    "Datasets and encoders" -
       sparkSession(
         """
             @ import spark.implicits._
@@ -286,7 +280,6 @@ class SparkReplTests(
             res: Array[Int] = Array(10)
         """
       )
-    }
 
     "SPARK-2632 importing a method from non serializable class and not using it" - {
       val fieldNamePart = if (is212) "" else "value = "
@@ -361,8 +354,7 @@ class SparkReplTests(
       )
     }
 
-    "replicating blocks of object with class defined in repl" - {
-
+    "replicating blocks of object with class defined in repl" -
       // FIXME The actual test also does https://github.com/apache/spark/blob/ab18b02e66fd04bc8f1a4fb7b6a7f2773902a494/repl/src/test/scala/org/apache/spark/repl/SingletonReplSuite.scala#L353-L359
 
       sparkSession(
@@ -387,7 +379,6 @@ class SparkReplTests(
             res: Int = 10
         """
       )
-    }
 
     "should clone and clean line object in ClosureCleaner" - {
       inputUrlOpt match {
@@ -430,7 +421,7 @@ class SparkReplTests(
       }
     }
 
-    "newProductSeqEncoder with REPL defined class" - {
+    "newProductSeqEncoder with REPL defined class" -
       sparkSession(
         """
             @ case class Click(id: Int)
@@ -440,7 +431,6 @@ class SparkReplTests(
             res: Boolean = true
         """
       )
-    }
 
     // Adapted from https://github.com/apache/spark/blob/3d5c61e5fd24f07302e39b5d61294da79aa0c2f9/repl/src/test/scala/org/apache/spark/repl/ReplSuite.scala#L193-L208
     "line wrapper only initialized once when used as encoder outer scope" - {
@@ -488,7 +478,7 @@ class SparkReplTests(
     }
 
     // Adapted from https://github.com/apache/spark/blob/3d5c61e5fd24f07302e39b5d61294da79aa0c2f9/repl/src/test/scala/org/apache/spark/repl/ReplSuite.scala#L230-L238
-    "spark-shell should find imported types in class constructors and extends clause" - {
+    "spark-shell should find imported types in class constructors and extends clause" -
       sparkSession(
         """
             @ import org.apache.spark.Partition
@@ -501,10 +491,9 @@ class SparkReplTests(
             defined class P
         """
       )
-    }
 
     // https://github.com/apache/spark/blob/3d5c61e5fd24f07302e39b5d61294da79aa0c2f9/repl/src/test/scala/org/apache/spark/repl/ReplSuite.scala#L240-L259
-    "spark-shell should shadow val/def definitions correctly" - {
+    "spark-shell should shadow val/def definitions correctly" -
       sparkSession(
         """
             @ def myMethod() = "first definition"
@@ -539,7 +528,6 @@ class SparkReplTests(
             res: String = "!!2!!"
         """
       )
-    }
 
     // tests below are custom ones
 
