@@ -17,15 +17,15 @@ object Deps {
   def ammoniteReplApi  = ivy"sh.almond.tmp.ammonite:::ammonite-repl-api:${Versions.ammonite}"
   def ammoniteRepl     = ivy"sh.almond.tmp.ammonite:::ammonite-repl:${Versions.ammonite}"
 
-  def classPathUtil = ivy"io.get-coursier::class-path-util:0.1.4"
-  def jettyServer   = ivy"org.eclipse.jetty:jetty-server:9.4.58.v20250814"
+  def classPathUtil     = ivy"io.get-coursier::class-path-util:0.1.4"
+  def jettyServer       = ivy"org.eclipse.jetty:jetty-server:9.4.58.v20250814"
   def jsoniterScalaCore =
     ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-core:${Versions.jsoniterScala}"
   def jsoniterScalaMacros =
     ivy"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros:${Versions.jsoniterScala}"
-  def log4j2         = ivy"org.apache.logging.log4j:log4j-core:2.17.2"
-  def scalaKernelApi = ivy"sh.almond:::scala-kernel-api:${Versions.almond}"
-  def scalatags      = ivy"com.lihaoyi::scalatags:0.12.0"
+  def log4j2               = ivy"org.apache.logging.log4j:log4j-core:2.17.2"
+  def scalaKernelApi       = ivy"sh.almond:::scala-kernel-api:${Versions.almond}"
+  def scalatags            = ivy"com.lihaoyi::scalatags:0.12.0"
   def sparkSql(sv: String) = {
     val ver =
       if (sv.startsWith("2.12.")) "2.4.0"
