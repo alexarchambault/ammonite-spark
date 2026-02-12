@@ -52,7 +52,7 @@ final class SendLog(
 
       res match {
         case Some(t) => t
-        case None =>
+        case None    =>
           assert(delay.isFinite)
           Thread.sleep(delay.toMillis)
           helper((backOffFactor * delay).min(maxBackOffDelay))
@@ -111,7 +111,7 @@ final class SendLog(
               while (keepReading && lines.length <= lineBufferSize && br.ready())
                 lines += br.readLine()
 
-              val l = lines.result()
+              val l  = lines.result()
               val l0 =
                 if (replaceHome) {
                   val home = sys.props("user.home")
@@ -193,7 +193,7 @@ object SendLog {
 
     lazy val sendLog = new SendLog(f, commHandler, prefix = Option(prefix))
 
-    val id = Id.generate()
+    val id   = Id.generate()
     val data = DisplayData(
       Map(DisplayData.ContentType.text -> "", DisplayData.ContentType.html -> ""),
       idOpt = Some(id)
@@ -203,7 +203,7 @@ object SendLog {
     commHandler.receiver(
       commName,
       onOpen = (_, _) => {
-        val msg = "See your browser developer console for detailed spark logs."
+        val msg         = "See your browser developer console for detailed spark logs."
         val updatedData = DisplayData(
           Map(
             DisplayData.ContentType.text -> msg,

@@ -9,7 +9,7 @@ object DataFrameRenderer {
     import scalatags.Text.all._
     val columnFields = df.schema.fieldNames.toSeq.map(th(_))
     val columns      = tr(columnFields)
-    val rows = df
+    val rows         = df
       .rdd
       .map { row =>
         val fieldValues = row.toSeq.map(fieldToString).map(td(_))
