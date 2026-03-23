@@ -19,7 +19,7 @@ jobs:
       with:
         extraFiles: "[\".github/scripts/*\", \".github/workflows/ci.yml\", \"*.sh\"]"
         extraKey: "release"
-    - uses: coursier/setup-action@v2.0
+    - uses: coursier/setup-action@v3.0
       with:
         jvm: 8
     - run: .github/scripts/gpg-setup.sh
