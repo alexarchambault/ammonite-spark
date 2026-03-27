@@ -37,7 +37,7 @@ class TestRepl {
   val warningBuffer = mutable.Buffer.empty[String]
   val errorBuffer   = mutable.Buffer.empty[String]
   val infoBuffer    = mutable.Buffer.empty[String]
-  val printer0 = Printer(
+  val printer0      = Printer(
     new PrintStream(outBytes),
     new PrintStream(errBytes),
     new PrintStream(resBytes),
@@ -51,7 +51,7 @@ class TestRepl {
   val frames: Ref[List[Frame]] = Ref(List(Frame.createInitial(initialLoader)))
   val sess0                    = new SessionApiImpl(frames)
 
-  var currentLine = 0
+  var currentLine  = 0
   val interpParams = Interpreter.Parameters(
     printer = printer0,
     storage = storage,
@@ -277,7 +277,7 @@ class TestRepl {
       () => currentLine += 1
     )
     processed match {
-      case Res.Failure(s) => printer0.error(s)
+      case Res.Failure(s)                => printer0.error(s)
       case Res.Exception(throwable, msg) =>
         printer0.error(
           Repl.showException(throwable, fansi.Attrs.Empty, fansi.Attrs.Empty, fansi.Attrs.Empty)

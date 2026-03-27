@@ -49,7 +49,8 @@ final class ProgressSparkListener(
           }
           else
             publish.stderr(
-              s"Stage $stageId not found (only have ${elems.asScala.toVector.map(_._1).sorted})" + '\n'
+              s"Stage $stageId not found (only have ${elems.asScala.toVector.map(_._1).sorted})" +
+                '\n'
             )
       }
     }

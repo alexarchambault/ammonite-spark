@@ -71,7 +71,7 @@ object SparkDependencies {
     @tailrec
     def addIfClasses(module: String, classNames: List[String]): Unit =
       classNames match {
-        case Nil =>
+        case Nil    =>
         case h :: t =>
           try {
             cl.loadClass(h)
@@ -96,7 +96,7 @@ object SparkDependencies {
   }
 
   def stubsDependency = {
-    val sv = org.apache.spark.SPARK_VERSION
+    val sv     = org.apache.spark.SPARK_VERSION
     val suffix = sv.split('.').take(2) match {
       case Array("2", n) if Try(n.toInt).toOption.exists(_ <= 3) =>
         "20"
