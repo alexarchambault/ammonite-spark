@@ -88,7 +88,9 @@ final class StageElem(
            |  <div class="progress-bar" role="progressbar" style="background-color: blue; width: $donePct%; ${extraStyle.mkString(
             "; "
           )}; color: white" aria-valuenow="$donePct" aria-valuemin="0" aria-valuemax="100">
-           |    $doneTasks0${if (diff == 0) "" else s" + $diff"} / $numTasks
+           |    $doneTasks0${
+            if (diff == 0) "" else s" + $diff"
+          } / $numTasks
            |  </div>
            |  <div class="progress-bar" role="progressbar" style="background-color: red; width: $startedPct%" aria-valuenow="$startedPct" aria-valuemin="0" aria-valuemax="100"></div>
            |</div>
@@ -97,7 +99,7 @@ final class StageElem(
       )
     }
     else {
-      val taskOrTasks = if (numTasks <= 1) "task" else "tasks"
+      val taskOrTasks    = if (numTasks <= 1) "task" else "tasks"
       val onGoingMessage =
         if (onGoingCount <= 0) ""
         else s", $onGoingCount on-going"
@@ -109,7 +111,7 @@ final class StageElem(
 
     if (stageDone0 && !keep) {
       // Allow the user to see the completed bar before wiping it
-      val delay = 3.seconds
+      val delay              = 3.seconds
       val runnable: Runnable =
         () =>
           try {
@@ -130,11 +132,11 @@ final class StageElem(
 
 object StageElem {
   private def keepAlive = 30.seconds
-  lazy val scheduler = {
+  lazy val scheduler    = {
     val executor = new ScheduledThreadPoolExecutor(
       1,
       new ThreadFactory {
-        val count = new AtomicInteger
+        val count                                   = new AtomicInteger
         override def newThread(r: Runnable): Thread = {
           val name = s"almond-spark-progress-${count.getAndIncrement()}"
           val t    = new Thread(r, name)

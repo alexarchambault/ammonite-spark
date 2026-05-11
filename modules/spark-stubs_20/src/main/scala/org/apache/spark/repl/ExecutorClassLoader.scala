@@ -62,7 +62,7 @@ class ExecutorClassLoader(
   private val fetchFn: (String) => InputStream = uri.getScheme() match {
     case "spark"                  => getClassFileInputStreamFromSparkRPC
     case "http" | "https" | "ftp" => getClassFileInputStreamFromHttpServer
-    case _ =>
+    case _                        =>
       val fileSystem = FileSystem.get(uri, SparkHadoopUtil.get.newConfiguration(conf))
       getClassFileInputStreamFromFileSystem(fileSystem)
   }
