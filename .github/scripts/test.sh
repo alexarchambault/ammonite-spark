@@ -7,13 +7,13 @@ case "${MASTER:-"local"}" in
     ./mill __.mimaReportBinaryIssues
     ;;
   local-distrib)
-    ./mill local-spark-distrib-tests.testForked ;;
+    ./mill local-spark-distrib-tests._.testForked ;;
   standalone)
-    ./mill standalone-tests.testForked ;;
+    ./mill standalone-tests._.testForked ;;
   yarn)
     ./mill-in-docker-with-yarn-cluster.sh --prefetch 'yarn-tests._.testForked' ;;
   yarn-distrib)
-    ./mill-in-docker-with-yarn-cluster.sh yarn-spark-distrib-tests.testForked ;;
+    ./mill-in-docker-with-yarn-cluster.sh yarn-spark-distrib-tests._.testForked ;;
   *)
     echo "Unrecognized master type $MASTER"
     exit 1
