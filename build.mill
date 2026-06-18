@@ -400,12 +400,10 @@ object `local-spark-distrib-tests` extends SbtModule with SparkTestsJvm {
 }
 
 object `standalone-tests` extends ScalaModule with SparkTestsJvm with AmmSparkTests {
-  private def sv   = SparkDistributions.scalaVersion
-  def scalaVersion = sv
+  def scalaVersion = SparkDistributions.scalaVersion
   def moduleDeps = super.moduleDeps ++ Seq(
-    tests(sv)
+    tests(SparkDistributions.scalaVersion)
   )
-
   def forkEnv = Task {
     super.forkEnv() ++ `standalone-cluster`.testEnv()
   }
