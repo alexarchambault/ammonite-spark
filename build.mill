@@ -191,21 +191,21 @@ trait WithDependencyResourceFile extends JavaModule {
 
 object `spark-stubs_24` extends SbtModule with AmmSparkPublishModule {
   def scalaVersion = Versions.scala212
-  def mvnDeps = super.mvnDeps() ++ Seq(
+  def compileMvnDeps = super.compileMvnDeps() ++ Seq(
     Deps.sparkSql(scalaVersion())
   )
 }
 
 object `spark-stubs_30` extends SbtModule with AmmSparkPublishModule {
   def scalaVersion = Versions.scala212
-  def mvnDeps = super.mvnDeps() ++ Seq(
+  def compileMvnDeps = super.compileMvnDeps() ++ Seq(
     Deps.sparkSql3
   )
 }
 
 object `spark-stubs_32` extends Cross[SparkStubs32](Versions.scala)
 trait SparkStubs32 extends CrossSbtModule with AmmSparkPublishModule {
-  def mvnDeps = super.mvnDeps() ++ Seq(
+  def compileMvnDeps = super.compileMvnDeps() ++ Seq(
     Deps.sparkSql32
   )
 }
