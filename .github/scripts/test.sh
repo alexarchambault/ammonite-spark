@@ -9,7 +9,7 @@ case "${MASTER:-"local"}" in
   local-distrib)
     ./mill local-spark-distrib-tests.test ;;
   standalone)
-    ./mill standalone-tests.test ;;
+    ./mill standalone-tests.testForked ;;
   yarn)
     ./mill-in-docker-with-yarn-cluster.sh --prefetch 'yarn-tests[_].test' ;;
   yarn-distrib)

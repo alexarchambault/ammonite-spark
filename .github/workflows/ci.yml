@@ -46,7 +46,6 @@ jobs:
       env:
         MILL_CHECKS_ALLOW_EMPTY_SOURCES: >-
           local-spark-distrib-tests,
-          standalone-tests,
           yarn-spark-distrib-tests,
           yarn-tests.2_12_11,
           yarn-tests.2_13_11

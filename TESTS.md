@@ -5,7 +5,7 @@ $ ./mill 'tests[_].test'
 
 Run the tests with against a standalone cluster with
 ```
-$ ./mill standalone-tests.test
+$ ./mill standalone-tests.testForked
 ```
 Note that this command downloads a Spark distribution itself, starts a master and one slave, and shuts them down when the command exits.
 

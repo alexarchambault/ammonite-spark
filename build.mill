@@ -399,37 +399,35 @@ object `local-spark-distrib-tests` extends SbtModule with SparkTestsJvm {
   }
 }
 
-object `standalone-tests` extends SbtModule with SparkTestsJvm {
+object `standalone-tests` extends ScalaModule with SparkTestsJvm with AmmSparkTests {
   private def sv   = SparkDistributions.scalaVersion
   def scalaVersion = sv
   def moduleDeps = super.moduleDeps ++ Seq(
     tests(sv)
   )
 
-  object test extends SbtTests with AmmSparkTests {
-    def forkEnv = Task {
-      super.forkEnv() ++ `standalone-cluster`.testEnv()
-    }
+  def forkEnv = Task {
+    super.forkEnv() ++ `standalone-cluster`.testEnv()
   }
 }
 
 object `yarn-tests` extends Cross[YarnTests](Versions.scala)
 trait YarnTests extends CrossSbtModule with SparkTestsJvm {
-  def moduleDeps = super.moduleDeps ++ Seq(
-    tests()
-  )
-
-  object test extends CrossSbtTests with AmmSparkTests with RunClasspathAsJars
+  object test extends CrossSbtTests with AmmSparkTests with RunClasspathAsJars {
+    def moduleDeps = super.moduleDeps ++ Seq(
+      tests()
+    )
+  }
 }
 
 object `yarn-spark-distrib-tests` extends SbtModule with SparkTestsJvm {
   private def sv   = SparkDistributions.scalaVersion
   def scalaVersion = sv
-  def moduleDeps = super.moduleDeps ++ Seq(
-    tests(sv)
-  )
 
   object test extends SbtTests with AmmSparkTests with RunClasspathAsJars {
+    def moduleDeps = super.moduleDeps ++ Seq(
+      tests(sv)
+    )
     def forkEnv = super.forkEnv() ++ SparkDistributions.testEnv()
   }
 }
