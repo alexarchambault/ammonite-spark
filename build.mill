@@ -199,119 +199,6 @@ trait Core  extends CrossSbtModule with WithPropertyFile with AmmSparkPublishMod
   }
 }
 
-// Spark version used to build the local distribution and run the standalone
-// cluster tasks below. Only 2.4 version published with Scala 2.12.
-def sparkVersion = Task("2.4.2")
-
-def sparkHome = Task {
-  val sparkDir = SparkHome.createDistributionUnder(
-    Task.dest,
-    sparkVersion(),
-    extraJars = Seq(`spark-stubs_24`.jar().path)
-  )
-
-  PathRef(sparkDir)
-}
-
-// Spark 2.4 only runs on Java 8, while the Mill build itself runs on a newer
-// JVM. Fetch a JDK 8 through the coursier-jvm API so the standalone master and
-// worker scripts (which honour JAVA_HOME) launch with the right JVM.
-def java8Home = Task {
-  val fileCache = coursier.cache.FileCache()
-  val jvmCache = coursier.jvm.JvmCache()
-    .withArchiveCache(coursier.cache.ArchiveCache().withCache(fileCache))
-    .withDefaultIndex
-  val javaHome = coursier.jvm.JavaHome().withCache(jvmCache)
-  val home     = javaHome.get("8").unsafeRun()(using fileCache.ec)
-  PathRef(os.Path(home.getAbsolutePath))
-}
-
-// Env to run a subprocess under the fetched JDK 8: JAVA_HOME pointing at it, and
-// its bin/ prepended to PATH (os.proc propagates the parent env by default).
-private def java8Env(java8: os.Path): Map[String, String] =
-  Map(
-    "JAVA_HOME" -> java8.toString,
-    "PATH"      -> s"${java8 / "bin"}${java.io.File.pathSeparator}${sys.env.getOrElse("PATH", "")}"
-  )
-
-private def sparkHome0 = sparkHome
-object `standalone-cluster` extends StandaloneCluster {
-  def sparkHome = sparkHome0
-  def extraEnv  = java8Env(java8Home().path)
-
-  def testEnv: T[Map[String, String]] = Task {
-    // Bring up the standalone master and worker before running the tests.
-    `standalone-cluster`.sparkSlave()
-    Map(
-      "SPARK_HOME"               -> sparkHome().path.toString,
-      "STANDALONE_SPARK_MASTER"  -> sparkMaster().master,
-      "STANDALONE_SPARK_VERSION" -> sparkVersion()
-    )
-  }
-}
-
-// All modules whose artifacts the tests need to resolve at runtime, via the
-// `import $ivy.`sh.almond::ammonite-spark:…`` in the embedded Ammonite REPL
-// (which also pulls the matching spark-stubs_* dynamically through coursier).
-def publishModules: Seq[AmmSparkPublishModule] =
-  Seq(`spark-stubs_24`, `spark-stubs_30`) ++
-    `spark-stubs_32`.crossModules ++
-    core.crossModules ++
-    `almond-spark`.crossModules ++
-    `almond-toree-spark`.crossModules
-
-// Gather the publishLocalTestRepo of every module into a single local Maven
-// repository, so tests can resolve the just-built artifacts without polluting
-// ~/.ivy2/local via publishLocal.
-def testRepo = Task {
-  val repoDirs = Task.traverse(publishModules)(_.publishLocalTestRepo)()
-  val dest     = Task.dest / "repo"
-  for (repo <- repoDirs)
-    os.copy(repo.path, dest, mergeFolders = true, replaceExisting = true, createFolders = true)
-  PathRef(dest)
-}
-
-trait AmmSparkTests extends TestModule {
-  def testFramework = "utest.runner.Framework"
-  def forkArgs =
-    super.forkArgs() ++ Seq("-Xmx3g", "-Dfoo=bzz") ++ sparkAddOpens
-  def forkEnv = super.forkEnv() ++ Seq(
-    "COURSIER_REPOSITORIES" -> {
-      val repoUrl = testRepo().path.toNIO.toUri.toASCIIString
-      s"$repoUrl|central"
-    }
-  )
-}
-
-// Spark 3.x doesn't officially support Java 17 (only 8/11), so run the modules
-// hosting Spark tests - and their forked tests, which inherit javaHome from their
-// enclosing module - on Java 11. The Mill build itself runs on Java 17, and Mill 1
-// can't fork tests on Java 8 (its test bootstrap relies on java.lang.ProcessHandle).
-trait SparkTestsJvm extends JavaModule {
-  def jvmId = "temurin:11"
-}
-
-// Spark accesses JDK internals that the module system locks down since Java 9, so
-// it needs these --add-opens to run on Java 11+ (Spark itself only started passing
-// them automatically in 3.3).
-def sparkAddOpens = Seq(
-  "-XX:+IgnoreUnrecognizedVMOptions",
-  "--add-opens=java.base/java.lang=ALL-UNNAMED",
-  "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
-  "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
-  "--add-opens=java.base/java.io=ALL-UNNAMED",
-  "--add-opens=java.base/java.net=ALL-UNNAMED",
-  "--add-opens=java.base/java.nio=ALL-UNNAMED",
-  "--add-opens=java.base/java.util=ALL-UNNAMED",
-  "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED",
-  "--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED",
-  "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
-  "--add-opens=java.base/sun.nio.cs=ALL-UNNAMED",
-  "--add-opens=java.base/sun.security.action=ALL-UNNAMED",
-  "--add-opens=java.base/sun.util.calendar=ALL-UNNAMED",
-  "--add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED"
-)
-
 object `almond-spark` extends Cross[AlmondSpark](Versions.scala)
 trait AlmondSpark     extends CrossSbtModule with AmmSparkPublishModule
     with AmmSparkMima {
@@ -355,6 +242,135 @@ trait AlmondToreeSpark extends CrossSbtModule with AmmSparkPublishModule with Am
   )
 }
 
+
+object SparkDistributions extends Module {
+
+  // Spark version used to build the local distribution and run the standalone
+  // cluster tasks below. Only 2.4 version published with Scala 2.12.
+  def sparkVersion = Task("2.4.2")
+
+  def sparkHome = Task {
+    val sparkDir = SparkHome.createDistributionUnder(
+      Task.dest,
+      sparkVersion(),
+      extraJars = Seq(`spark-stubs_24`.jar().path)
+    )
+
+    PathRef(sparkDir)
+  }
+
+  def testEnv: T[Map[String, String]] = Task {
+    Map(
+      "SPARK_HOME"    -> sparkHome().path.toString,
+      "SPARK_VERSION" -> sparkVersion()
+    )
+  }
+
+}
+
+object `standalone-cluster` extends StandaloneCluster {
+
+  // Spark 2.4 only runs on Java 8, while the Mill build itself runs on a newer
+  // JVM. Fetch a JDK 8 through the coursier-jvm API so the standalone master and
+  // worker scripts (which honour JAVA_HOME) launch with the right JVM.
+  def java8Home = Task {
+    val fileCache = coursier.cache.FileCache()
+    val jvmCache = coursier.jvm.JvmCache()
+      .withArchiveCache(coursier.cache.ArchiveCache().withCache(fileCache))
+      .withDefaultIndex
+    val javaHome = coursier.jvm.JavaHome().withCache(jvmCache)
+    val home     = javaHome.get("8").unsafeRun()(using fileCache.ec)
+    PathRef(os.Path(home.getAbsolutePath))
+  }
+
+  def sparkHome = SparkDistributions.sparkHome
+  def extraEnv  = Task {
+    val java8 = java8Home().path
+    Map(
+      "JAVA_HOME" -> java8.toString,
+      "PATH"      -> s"${java8 / "bin"}${java.io.File.pathSeparator}${sys.env.getOrElse("PATH", "")}"
+    )
+  }
+
+  def testEnv: T[Map[String, String]] = Task {
+    // Bring up the standalone master and worker before running the tests.
+    `standalone-cluster`.sparkSlave()
+    Map(
+      "SPARK_HOME"               -> sparkHome().path.toString,
+      "STANDALONE_SPARK_MASTER"  -> sparkMaster().master,
+      "STANDALONE_SPARK_VERSION" -> SparkDistributions.sparkVersion()
+    )
+  }
+}
+
+// Gather the publishLocalTestRepo of every module into a single local Maven
+// repository, so tests can resolve the just-built artifacts without polluting
+// ~/.ivy2/local via publishLocal.
+def testRepo: T[PathRef] = {
+
+  // All modules whose artifacts the tests need to resolve at runtime, via the
+  // `import $ivy.`sh.almond::ammonite-spark:…`` in the embedded Ammonite REPL
+  // (which also pulls the matching spark-stubs_* dynamically through coursier).
+  val publishModules: Seq[AmmSparkPublishModule] =
+    Seq(`spark-stubs_24`, `spark-stubs_30`) ++
+      `spark-stubs_32`.crossModules ++
+      core.crossModules ++
+      `almond-spark`.crossModules ++
+      `almond-toree-spark`.crossModules
+
+  Task {
+    val repoDirs = Task.traverse(publishModules)(_.publishLocalTestRepo)()
+    val dest     = Task.dest / "repo"
+    for (repo <- repoDirs)
+      os.copy(repo.path, dest, mergeFolders = true, replaceExisting = true, createFolders = true)
+    PathRef(dest)
+  }
+}
+
+
+trait AmmSparkTests extends TestModule {
+  def testFramework = "utest.runner.Framework"
+  def forkArgs = Task {
+    super.forkArgs() ++
+    Seq("-Xmx3g", "-Dfoo=bzz") ++
+    // Spark accesses JDK internals that the module system locks down since Java 9, so
+    // it needs these --add-opens to run on Java 11+ (Spark itself only started passing
+    // them automatically in 3.3).
+    Seq(
+      "-XX:+IgnoreUnrecognizedVMOptions",
+      "--add-opens=java.base/java.lang=ALL-UNNAMED",
+      "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
+      "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
+      "--add-opens=java.base/java.io=ALL-UNNAMED",
+      "--add-opens=java.base/java.net=ALL-UNNAMED",
+      "--add-opens=java.base/java.nio=ALL-UNNAMED",
+      "--add-opens=java.base/java.util=ALL-UNNAMED",
+      "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED",
+      "--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED",
+      "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
+      "--add-opens=java.base/sun.nio.cs=ALL-UNNAMED",
+      "--add-opens=java.base/sun.security.action=ALL-UNNAMED",
+      "--add-opens=java.base/sun.util.calendar=ALL-UNNAMED",
+      "--add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED"
+    )
+  }
+  def forkEnv = super.forkEnv() ++ Seq(
+    "COURSIER_REPOSITORIES" -> {
+      val repoUrl = testRepo().path.toNIO.toUri.toASCIIString
+      s"$repoUrl|central"
+    }
+  )
+}
+
+// Spark 3.x doesn't officially support Java 17 (only 8/11), so run the modules
+// hosting Spark tests - and their forked tests, which inherit javaHome from their
+// enclosing module - on Java 11. The Mill build itself runs on Java 17, and Mill 1
+// can't fork tests on Java 8 (its test bootstrap relies on java.lang.ProcessHandle).
+trait SparkTestsJvm extends JavaModule {
+  def jvmId = "temurin:11"
+}
+
+
 object tests extends Cross[Tests](Versions.scala)
 trait Tests  extends CrossSbtModule with WithPropertyFile with WithDependencyResourceFile
     with SparkTestsJvm {
@@ -380,10 +396,7 @@ object `local-spark-distrib-tests` extends SbtModule with SparkTestsJvm {
   )
 
   object test extends SbtTests with AmmSparkTests {
-    def forkEnv = super.forkEnv() ++ Seq(
-      "SPARK_HOME"    -> sparkHome().path.toString,
-      "SPARK_VERSION" -> sparkVersion()
-    )
+    def forkEnv = super.forkEnv() ++ SparkDistributions.testEnv()
   }
 }
 
@@ -418,9 +431,6 @@ object `yarn-spark-distrib-tests` extends SbtModule with SparkTestsJvm {
   )
 
   object test extends SbtTests with AmmSparkTests with RunClasspathAsJars {
-    def forkEnv = super.forkEnv() ++ Seq(
-      "SPARK_HOME"    -> sparkHome().path.toString,
-      "SPARK_VERSION" -> sparkVersion()
-    )
+    def forkEnv = super.forkEnv() ++ SparkDistributions.testEnv()
   }
 }
