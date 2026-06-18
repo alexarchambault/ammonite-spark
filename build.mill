@@ -185,33 +185,6 @@ trait Core  extends CrossSbtModule with WithPropertyFile with AmmSparkPublishMod
   def propertyFilePath =
     os.sub / "org/apache/spark/sql/ammonitesparkinternals/ammonite-spark.properties"
   def versionInProperties = publishVersion()
-  def propResourcesDir = Task(persistent = true) {
-    import sys.process._
-
-    val dir = Task.dest / "property-resources"
-    val ver = publishVersion()
-
-    val f =
-      dir / "org/apache/spark/sql/ammonitesparkinternals/ammonite-spark.properties"
-
-    val contentStr =
-      s"""commit-hash=${commitHash()}
-         |version=$ver
-         |""".stripMargin
-
-    val content           = contentStr.getBytes("UTF-8")
-    val currentContentOpt = if (os.exists(f)) Some(os.read.bytes(f)) else None
-
-    if (!os.exists(f) || !Arrays.equals(content, os.read.bytes(f))) {
-      os.write.over(f, content, createFolders = true)
-      System.err.println(s"Wrote $f")
-    }
-
-    PathRef(dir)
-  }
-  def resources = Task {
-    super.resources() ++ Seq(propResourcesDir())
-  }
 
   def mimaPreviousVersions = Task {
     val needs =
