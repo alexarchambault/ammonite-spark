@@ -309,6 +309,8 @@ object `standalone-cluster` extends StandaloneCluster {
     PathRef(os.Path(home.getAbsoluteFile))
   }
 
+  def scalaVersion = SparkDistributions.scalaVersion
+
   def sparkHome = SparkDistributions.sparkHome
   def extraEnv = Task {
     val java8 = java8Home().path
@@ -320,7 +322,7 @@ object `standalone-cluster` extends StandaloneCluster {
 
   def testEnv: T[Map[String, String]] = Task {
     // Bring up the standalone master and worker before running the tests.
-    `standalone-cluster`.sparkSlave()
+    sparkSlave()
     Map(
       "SPARK_HOME"               -> sparkHome().path.toString,
       "STANDALONE_SPARK_MASTER"  -> sparkMaster().master,
@@ -420,9 +422,9 @@ object `local-spark-distrib-tests` extends ScalaModule with SparkTestsJvm with A
 }
 
 object `standalone-tests` extends ScalaModule with SparkTestsJvm with AmmSparkTests {
-  def scalaVersion = SparkDistributions.scalaVersion
+  def scalaVersion = `standalone-cluster`.scalaVersion
   def moduleDeps = Seq(
-    `test-definitions`(SparkDistributions.scalaVersion)
+    `test-definitions`(`standalone-cluster`.scalaVersion)
   )
   def forkEnv = Task {
     super.forkEnv() ++ `standalone-cluster`.testEnv()
