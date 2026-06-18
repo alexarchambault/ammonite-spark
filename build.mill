@@ -149,14 +149,14 @@ trait WithDependencyResourceFile extends JavaModule {
   }
 }
 
-object `spark-stubs_24` extends SbtModule with AmmSparkPublishModule {
+object `spark-stubs_24` extends ScalaModule with AmmSparkPublishModule {
   def scalaVersion = Versions.scala212
   def compileMvnDeps = super.compileMvnDeps() ++ Seq(
     Deps.sparkSql(scalaVersion())
   )
 }
 
-object `spark-stubs_30` extends SbtModule with AmmSparkPublishModule {
+object `spark-stubs_30` extends ScalaModule with AmmSparkPublishModule {
   def scalaVersion = Versions.scala212
   def compileMvnDeps = super.compileMvnDeps() ++ Seq(
     Deps.sparkSql3
@@ -164,14 +164,14 @@ object `spark-stubs_30` extends SbtModule with AmmSparkPublishModule {
 }
 
 object `spark-stubs_32` extends Cross[SparkStubs32](Versions.scala)
-trait SparkStubs32 extends CrossSbtModule with AmmSparkPublishModule {
+trait SparkStubs32 extends CrossScalaModule with AmmSparkPublishModule {
   def compileMvnDeps = super.compileMvnDeps() ++ Seq(
     Deps.sparkSql32
   )
 }
 
 object core extends Cross[Core](Versions.scala)
-trait Core  extends CrossSbtModule with WithPropertyFile with AmmSparkPublishModule
+trait Core  extends CrossScalaModule with WithPropertyFile with AmmSparkPublishModule
     with AmmSparkMima {
   def artifactName = "ammonite-spark"
   def compileMvnDeps = super.compileMvnDeps() ++ Seq(
@@ -200,7 +200,7 @@ trait Core  extends CrossSbtModule with WithPropertyFile with AmmSparkPublishMod
 }
 
 object `almond-spark` extends Cross[AlmondSpark](Versions.scala)
-trait AlmondSpark     extends CrossSbtModule with AmmSparkPublishModule
+trait AlmondSpark     extends CrossScalaModule with AmmSparkPublishModule
     with AmmSparkMima {
   def moduleDeps = super.moduleDeps ++ Seq(
     core()
@@ -224,7 +224,7 @@ trait AlmondSpark     extends CrossSbtModule with AmmSparkPublishModule
 }
 
 object `almond-toree-spark` extends Cross[AlmondToreeSpark](Versions.scala)
-trait AlmondToreeSpark extends CrossSbtModule with AmmSparkPublishModule with AmmSparkMima {
+trait AlmondToreeSpark extends CrossScalaModule with AmmSparkPublishModule with AmmSparkMima {
   def moduleDeps = super.moduleDeps ++ Seq(
     `almond-spark`()
   )
