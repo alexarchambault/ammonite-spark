@@ -59,7 +59,7 @@ trait AmmSparkPublishModule extends PublishModule {
       Developer("alexarchambault", "Alex Archambault", "https://github.com/alexarchambault")
     )
   )
-  override def javacOptions = Task {
+  def javacOptions = Task {
     super.javacOptions() ++ Seq("--release", "8")
   }
 }
@@ -306,7 +306,7 @@ object `standalone-cluster` extends StandaloneCluster {
       .withDefaultIndex
     val javaHome = coursier.jvm.JavaHome().withCache(jvmCache)
     val home     = javaHome.get("8").unsafeRun()(using fileCache.ec)
-    PathRef(os.Path(home.getAbsolutePath))
+    PathRef(os.Path(home.getAbsoluteFile))
   }
 
   def sparkHome = SparkDistributions.sparkHome
@@ -369,6 +369,9 @@ trait AmmSparkTests extends TestModule {
 // can't fork tests on Java 8 (its test bootstrap relies on java.lang.ProcessHandle).
 trait SparkTestsJvm extends JavaModule {
   def jvmId = "temurin:11"
+  def javacOptions = Task {
+    super.javacOptions() ++ Seq("--release", "8")
+  }
 }
 
 object `test-definitions` extends Cross[TestDefinitions](
