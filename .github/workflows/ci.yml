@@ -45,10 +45,7 @@ jobs:
       run: ./mill -i --import io.github.alexarchambault.mill::mill-checks:0.1.2 io.github.alexarchambault.millchecks.MillChecks/allChecks
       env:
         MILL_CHECKS_ALLOW_EMPTY_SOURCES: >-
-          local-spark-distrib-tests,
-          yarn-spark-distrib-tests,
-          yarn-tests.2_12_11,
-          yarn-tests.2_13_11
+          yarn-spark-distrib-tests
         MILL_CHECKS_ORPHAN_SOURCES_IGNORE: >-
           mill-build
     - name: Ensure computing non-final sources doesn't trigger compilation

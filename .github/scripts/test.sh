@@ -3,15 +3,15 @@ set -e
 
 case "${MASTER:-"local"}" in
   local)
-    ./mill 'tests[_].test'
+    ./mill local-tests._.testForked
     ./mill __.mimaReportBinaryIssues
     ;;
   local-distrib)
-    ./mill local-spark-distrib-tests.test ;;
+    ./mill local-spark-distrib-tests.testForked ;;
   standalone)
     ./mill standalone-tests.testForked ;;
   yarn)
-    ./mill-in-docker-with-yarn-cluster.sh --prefetch 'yarn-tests[_].test' ;;
+    ./mill-in-docker-with-yarn-cluster.sh --prefetch 'yarn-tests._.testForked' ;;
   yarn-distrib)
     ./mill-in-docker-with-yarn-cluster.sh yarn-spark-distrib-tests.test ;;
   *)

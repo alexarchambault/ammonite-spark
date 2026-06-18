@@ -371,8 +371,10 @@ trait SparkTestsJvm extends JavaModule {
   def jvmId = "temurin:11"
 }
 
-object tests extends Cross[Tests]((Versions.scala ++ Seq(SparkDistributions.scalaVersion)).distinct)
-trait Tests  extends CrossSbtModule with WithPropertyFile with WithDependencyResourceFile
+object `test-definitions` extends Cross[TestDefinitions](
+      (Versions.scala ++ Seq(SparkDistributions.scalaVersion)).distinct
+    )
+trait TestDefinitions extends CrossScalaModule with WithPropertyFile with WithDependencyResourceFile
     with SparkTestsJvm {
   def propertyFilePath       = os.sub / "ammonite/ammonite-spark.properties"
   def versionInProperties    = core().publishVersion()
@@ -384,26 +386,40 @@ trait Tests  extends CrossSbtModule with WithPropertyFile with WithDependencyRes
     Deps.slf4jLog4j12,
     Deps.utest
   )
-
-  object test extends CrossSbtTests with AmmSparkTests
 }
 
-object `local-spark-distrib-tests` extends SbtModule with SparkTestsJvm {
-  private def sv   = SparkDistributions.scalaVersion
-  def scalaVersion = sv
-  def moduleDeps = super.moduleDeps ++ Seq(
-    tests(sv)
+object `local-tests` extends Cross[LocalTests](Versions.scala)
+trait LocalTests     extends CrossScalaModule with WithPropertyFile with WithDependencyResourceFile
+    with SparkTestsJvm with AmmSparkTests {
+  def propertyFilePath       = os.sub / "ammonite/ammonite-spark.properties"
+  def versionInProperties    = core().publishVersion()
+  def dependencyResourcePath = os.sub / "ammonite/spark/amm-test-dependencies.txt"
+
+  def moduleDeps = Seq(
+    `test-definitions`()
   )
 
-  object test extends SbtTests with AmmSparkTests {
-    def forkEnv = super.forkEnv() ++ SparkDistributions.testEnv()
-  }
+  def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.ammoniteCompiler.exclude(("com.google.guava", "guava")),
+    Deps.ammoniteRepl.exclude(("com.google.guava", "guava")),
+    Deps.slf4jLog4j12,
+    Deps.utest
+  )
+}
+
+object `local-spark-distrib-tests` extends ScalaModule with SparkTestsJvm with AmmSparkTests {
+  def scalaVersion = SparkDistributions.scalaVersion
+  def moduleDeps = Seq(
+    `test-definitions`(SparkDistributions.scalaVersion)
+  )
+
+  def forkEnv = super.forkEnv() ++ SparkDistributions.testEnv()
 }
 
 object `standalone-tests` extends ScalaModule with SparkTestsJvm with AmmSparkTests {
   def scalaVersion = SparkDistributions.scalaVersion
-  def moduleDeps = super.moduleDeps ++ Seq(
-    tests(SparkDistributions.scalaVersion)
+  def moduleDeps = Seq(
+    `test-definitions`(SparkDistributions.scalaVersion)
   )
   def forkEnv = Task {
     super.forkEnv() ++ `standalone-cluster`.testEnv()
@@ -411,22 +427,18 @@ object `standalone-tests` extends ScalaModule with SparkTestsJvm with AmmSparkTe
 }
 
 object `yarn-tests` extends Cross[YarnTests](Versions.scala)
-trait YarnTests extends CrossSbtModule with SparkTestsJvm {
-  object test extends CrossSbtTests with AmmSparkTests with RunClasspathAsJars {
-    def moduleDeps = super.moduleDeps ++ Seq(
-      tests()
-    )
-  }
+trait YarnTests     extends CrossScalaModule with SparkTestsJvm with AmmSparkTests
+    with RunClasspathAsJars {
+  def moduleDeps = Seq(
+    `test-definitions`()
+  )
 }
 
-object `yarn-spark-distrib-tests` extends SbtModule with SparkTestsJvm {
-  private def sv   = SparkDistributions.scalaVersion
-  def scalaVersion = sv
-
-  object test extends SbtTests with AmmSparkTests with RunClasspathAsJars {
-    def moduleDeps = super.moduleDeps ++ Seq(
-      tests(sv)
-    )
-    def forkEnv = super.forkEnv() ++ SparkDistributions.testEnv()
-  }
+object `yarn-spark-distrib-tests` extends ScalaModule with SparkTestsJvm with AmmSparkTests
+    with RunClasspathAsJars {
+  def scalaVersion = SparkDistributions.scalaVersion
+  def moduleDeps = Seq(
+    `test-definitions`(SparkDistributions.scalaVersion)
+  )
+  def forkEnv = super.forkEnv() ++ SparkDistributions.testEnv()
 }

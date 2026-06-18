@@ -1,6 +1,6 @@
 Run the tests with `local` master with
 ```
-$ ./mill 'tests[_].test'
+$ ./mill local-tests._.testForked
 ```
 
 Run the tests with against a standalone cluster with
@@ -11,7 +11,7 @@ Note that this command downloads a Spark distribution itself, starts a master an
 
 Run the tests against a YARN cluster with
 ```
-$ ./mill-in-docker-with-yarn-cluster.sh 'yarn-tests[_].test'
+$ ./mill-in-docker-with-yarn-cluster.sh yarn-tests._.testForked
 ```
 
 Run the tests against a YARN cluster _using a provided spark distribution_ with
@@ -26,7 +26,7 @@ By default, the tests only write the Spark logs to a `spark.log` file. To also
 get them on the console (at `INFO` level), which helps debugging, set the
 `SPARK_LOG_CONSOLE` environment variable, e.g.
 ```
-$ SPARK_LOG_CONSOLE=1 ./mill 'tests[_].test'
-$ SPARK_LOG_CONSOLE=1 ./mill-in-docker-with-yarn-cluster.sh 'yarn-tests[_].test'
+$ SPARK_LOG_CONSOLE=1 ./mill local-tests._.testForked
+$ SPARK_LOG_CONSOLE=1 ./mill-in-docker-with-yarn-cluster.sh yarn-tests._.testForked
 ```
 The variable is forwarded into the docker container for the YARN tests.
