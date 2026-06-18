@@ -467,6 +467,49 @@ def sparkAddOpens = Seq(
   "--add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED"
 )
 
+object `almond-spark` extends Cross[AlmondSpark](Versions.scala)
+trait AlmondSpark     extends CrossSbtModule with AmmSparkPublishModule
+    with AmmSparkMima {
+  def moduleDeps = super.moduleDeps ++ Seq(
+    core()
+  )
+  def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.jsoniterScalaCore,
+    Deps.scalatags
+  )
+  def compileMvnDeps = super.compileMvnDeps() ++ Seq(
+    Deps.ammoniteReplApi,
+    Deps.jsoniterScalaMacros,
+    Deps.log4j2,
+    Deps.scalaKernelApi
+      .exclude(("com.lihaoyi", s"ammonite-compiler_$crossScalaVersion"))
+      .exclude(("com.lihaoyi", s"ammonite-repl-api_$crossScalaVersion")),
+    Deps.sparkSql(scalaVersion())
+  )
+  def repositories = super.repositories() ++ Seq(
+    "jitpack"
+  )
+}
+
+object `almond-toree-spark` extends Cross[AlmondToreeSpark](Versions.scala)
+trait AlmondToreeSpark extends CrossSbtModule with AmmSparkPublishModule with AmmSparkMima {
+  def moduleDeps = super.moduleDeps ++ Seq(
+    `almond-spark`()
+  )
+  def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.almondToreeHooks
+  )
+  def compileMvnDeps = super.compileMvnDeps() ++ Seq(
+    Deps.scalaKernelApi
+      .exclude(("com.lihaoyi", s"ammonite-compiler_$crossScalaVersion"))
+      .exclude(("com.lihaoyi", s"ammonite-repl-api_$crossScalaVersion")),
+    Deps.sparkSql(scalaVersion())
+  )
+  def repositories = super.repositories() ++ Seq(
+    "jitpack"
+  )
+}
+
 object tests extends Cross[Tests](Versions.scala)
 trait Tests  extends CrossSbtModule with WithPropertyFile with WithDependencyResourceFile
     with SparkTestsJvm {
@@ -541,47 +584,4 @@ object `yarn-spark-distrib-tests` extends SbtModule with SparkTestsJvm {
       "SPARK_VERSION" -> sparkVersion()
     )
   }
-}
-
-object `almond-spark` extends Cross[AlmondSpark](Versions.scala)
-trait AlmondSpark     extends CrossSbtModule with AmmSparkPublishModule
-    with AmmSparkMima {
-  def moduleDeps = super.moduleDeps ++ Seq(
-    core()
-  )
-  def mvnDeps = super.mvnDeps() ++ Seq(
-    Deps.jsoniterScalaCore,
-    Deps.scalatags
-  )
-  def compileMvnDeps = super.compileMvnDeps() ++ Seq(
-    Deps.ammoniteReplApi,
-    Deps.jsoniterScalaMacros,
-    Deps.log4j2,
-    Deps.scalaKernelApi
-      .exclude(("com.lihaoyi", s"ammonite-compiler_$crossScalaVersion"))
-      .exclude(("com.lihaoyi", s"ammonite-repl-api_$crossScalaVersion")),
-    Deps.sparkSql(scalaVersion())
-  )
-  def repositories = super.repositories() ++ Seq(
-    "jitpack"
-  )
-}
-
-object `almond-toree-spark` extends Cross[AlmondToreeSpark](Versions.scala)
-trait AlmondToreeSpark extends CrossSbtModule with AmmSparkPublishModule with AmmSparkMima {
-  def moduleDeps = super.moduleDeps ++ Seq(
-    `almond-spark`()
-  )
-  def mvnDeps = super.mvnDeps() ++ Seq(
-    Deps.almondToreeHooks
-  )
-  def compileMvnDeps = super.compileMvnDeps() ++ Seq(
-    Deps.scalaKernelApi
-      .exclude(("com.lihaoyi", s"ammonite-compiler_$crossScalaVersion"))
-      .exclude(("com.lihaoyi", s"ammonite-repl-api_$crossScalaVersion")),
-    Deps.sparkSql(scalaVersion())
-  )
-  def repositories = super.repositories() ++ Seq(
-    "jitpack"
-  )
 }
