@@ -242,7 +242,33 @@ trait AlmondToreeSpark extends CrossSbtModule with AmmSparkPublishModule with Am
   )
 }
 
+// Gather the publishLocalTestRepo of every module into a single local Maven
+// repository, so tests can resolve the just-built artifacts without polluting
+// ~/.ivy2/local via publishLocal.
+def testRepo: T[PathRef] = {
+
+  // All modules whose artifacts the tests need to resolve at runtime, via the
+  // `import $ivy.`sh.almond::ammonite-spark:…`` in the embedded Ammonite REPL
+  // (which also pulls the matching spark-stubs_* dynamically through coursier).
+  val publishModules: Seq[AmmSparkPublishModule] =
+    Seq(`spark-stubs_24`, `spark-stubs_30`) ++
+      `spark-stubs_32`.crossModules ++
+      core.crossModules ++
+      `almond-spark`.crossModules ++
+      `almond-toree-spark`.crossModules
+
+  Task {
+    val repoDirs = Task.traverse(publishModules)(_.publishLocalTestRepo)()
+    val dest     = Task.dest / "repo"
+    for (repo <- repoDirs)
+      os.copy(repo.path, dest, mergeFolders = true, replaceExisting = true, createFolders = true)
+    PathRef(dest)
+  }
+}
+
 object SparkDistributions extends Module {
+
+  def scalaVersion = Versions.scala212 // FIXME Get this from Spark distrib
 
   // Spark version used to build the local distribution and run the standalone
   // cluster tasks below. Only 2.4 version published with Scala 2.12.
@@ -299,30 +325,6 @@ object `standalone-cluster` extends StandaloneCluster {
       "STANDALONE_SPARK_MASTER"  -> sparkMaster().master,
       "STANDALONE_SPARK_VERSION" -> SparkDistributions.sparkVersion()
     )
-  }
-}
-
-// Gather the publishLocalTestRepo of every module into a single local Maven
-// repository, so tests can resolve the just-built artifacts without polluting
-// ~/.ivy2/local via publishLocal.
-def testRepo: T[PathRef] = {
-
-  // All modules whose artifacts the tests need to resolve at runtime, via the
-  // `import $ivy.`sh.almond::ammonite-spark:…`` in the embedded Ammonite REPL
-  // (which also pulls the matching spark-stubs_* dynamically through coursier).
-  val publishModules: Seq[AmmSparkPublishModule] =
-    Seq(`spark-stubs_24`, `spark-stubs_30`) ++
-      `spark-stubs_32`.crossModules ++
-      core.crossModules ++
-      `almond-spark`.crossModules ++
-      `almond-toree-spark`.crossModules
-
-  Task {
-    val repoDirs = Task.traverse(publishModules)(_.publishLocalTestRepo)()
-    val dest     = Task.dest / "repo"
-    for (repo <- repoDirs)
-      os.copy(repo.path, dest, mergeFolders = true, replaceExisting = true, createFolders = true)
-    PathRef(dest)
   }
 }
 
@@ -386,7 +388,7 @@ trait Tests  extends CrossSbtModule with WithPropertyFile with WithDependencyRes
 }
 
 object `local-spark-distrib-tests` extends SbtModule with SparkTestsJvm {
-  private def sv   = Versions.scala212
+  private def sv   = SparkDistributions.scalaVersion
   def scalaVersion = sv
   def moduleDeps = super.moduleDeps ++ Seq(
     tests(sv)
@@ -398,7 +400,7 @@ object `local-spark-distrib-tests` extends SbtModule with SparkTestsJvm {
 }
 
 object `standalone-tests` extends SbtModule with SparkTestsJvm {
-  private def sv   = Versions.scala212
+  private def sv   = SparkDistributions.scalaVersion
   def scalaVersion = sv
   def moduleDeps = super.moduleDeps ++ Seq(
     tests(sv)
@@ -421,7 +423,7 @@ trait YarnTests extends CrossSbtModule with SparkTestsJvm {
 }
 
 object `yarn-spark-distrib-tests` extends SbtModule with SparkTestsJvm {
-  private def sv   = Versions.scala212
+  private def sv   = SparkDistributions.scalaVersion
   def scalaVersion = sv
   def moduleDeps = super.moduleDeps ++ Seq(
     tests(sv)
