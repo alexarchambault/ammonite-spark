@@ -242,7 +242,6 @@ trait AlmondToreeSpark extends CrossSbtModule with AmmSparkPublishModule with Am
   )
 }
 
-
 object SparkDistributions extends Module {
 
   // Spark version used to build the local distribution and run the standalone
@@ -284,11 +283,11 @@ object `standalone-cluster` extends StandaloneCluster {
   }
 
   def sparkHome = SparkDistributions.sparkHome
-  def extraEnv  = Task {
+  def extraEnv = Task {
     val java8 = java8Home().path
     Map(
       "JAVA_HOME" -> java8.toString,
-      "PATH"      -> s"${java8 / "bin"}${java.io.File.pathSeparator}${sys.env.getOrElse("PATH", "")}"
+      "PATH" -> s"${java8 / "bin"}${java.io.File.pathSeparator}${sys.env.getOrElse("PATH", "")}"
     )
   }
 
@@ -327,32 +326,31 @@ def testRepo: T[PathRef] = {
   }
 }
 
-
 trait AmmSparkTests extends TestModule {
   def testFramework = "utest.runner.Framework"
   def forkArgs = Task {
     super.forkArgs() ++
-    Seq("-Xmx3g", "-Dfoo=bzz") ++
-    // Spark accesses JDK internals that the module system locks down since Java 9, so
-    // it needs these --add-opens to run on Java 11+ (Spark itself only started passing
-    // them automatically in 3.3).
-    Seq(
-      "-XX:+IgnoreUnrecognizedVMOptions",
-      "--add-opens=java.base/java.lang=ALL-UNNAMED",
-      "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
-      "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
-      "--add-opens=java.base/java.io=ALL-UNNAMED",
-      "--add-opens=java.base/java.net=ALL-UNNAMED",
-      "--add-opens=java.base/java.nio=ALL-UNNAMED",
-      "--add-opens=java.base/java.util=ALL-UNNAMED",
-      "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED",
-      "--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED",
-      "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
-      "--add-opens=java.base/sun.nio.cs=ALL-UNNAMED",
-      "--add-opens=java.base/sun.security.action=ALL-UNNAMED",
-      "--add-opens=java.base/sun.util.calendar=ALL-UNNAMED",
-      "--add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED"
-    )
+      Seq("-Xmx3g", "-Dfoo=bzz") ++
+      // Spark accesses JDK internals that the module system locks down since Java 9, so
+      // it needs these --add-opens to run on Java 11+ (Spark itself only started passing
+      // them automatically in 3.3).
+      Seq(
+        "-XX:+IgnoreUnrecognizedVMOptions",
+        "--add-opens=java.base/java.lang=ALL-UNNAMED",
+        "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
+        "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
+        "--add-opens=java.base/java.io=ALL-UNNAMED",
+        "--add-opens=java.base/java.net=ALL-UNNAMED",
+        "--add-opens=java.base/java.nio=ALL-UNNAMED",
+        "--add-opens=java.base/java.util=ALL-UNNAMED",
+        "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED",
+        "--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED",
+        "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
+        "--add-opens=java.base/sun.nio.cs=ALL-UNNAMED",
+        "--add-opens=java.base/sun.security.action=ALL-UNNAMED",
+        "--add-opens=java.base/sun.util.calendar=ALL-UNNAMED",
+        "--add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED"
+      )
   }
   def forkEnv = super.forkEnv() ++ Seq(
     "COURSIER_REPOSITORIES" -> {
@@ -369,7 +367,6 @@ trait AmmSparkTests extends TestModule {
 trait SparkTestsJvm extends JavaModule {
   def jvmId = "temurin:11"
 }
-
 
 object tests extends Cross[Tests](Versions.scala)
 trait Tests  extends CrossSbtModule with WithPropertyFile with WithDependencyResourceFile
