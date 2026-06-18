@@ -48,7 +48,7 @@ jobs:
           local-spark-distrib-tests,
           standalone-tests,
           yarn-spark-distrib-tests,
-          yarn-tests.2_12_11,
+          yarn-tests.2_12_18,
           yarn-tests.2_13_11
         MILL_CHECKS_ORPHAN_SOURCES_IGNORE: >-
           mill-build
