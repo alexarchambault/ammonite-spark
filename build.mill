@@ -260,63 +260,10 @@ private def java8Env(java8: os.Path): Map[String, String] =
     "PATH"      -> s"${java8 / "bin"}${java.io.File.pathSeparator}${sys.env.getOrElse("PATH", "")}"
   )
 
-// Host the standalone cluster binds to
-def standaloneClusterHost = "localhost"
-
-// Handle on a running Spark standalone master. `master` is the SPARK_MASTER URL;
-// close() stops the master.
-class SparkMasterHandle(
-  home: os.Path,
-  val master: String,
-  extraEnv: Map[String, String]
-) extends AutoCloseable {
-  private def close0(check: Boolean = true): Unit =
-    os.proc(home / "sbin" / "stop-master.sh")
-      .call(cwd = home, env = extraEnv, check = check, stdin = os.Inherit, stdout = os.Inherit)
-  def tryClose(): Unit =
-    close0(check = false)
-  def close(): Unit =
-    close0()
-}
-
-// Handle on a running Spark standalone worker (slave); close() stops it.
-class SparkSlaveHandle(
-  home: os.Path,
-  extraEnv: Map[String, String]
-) extends AutoCloseable {
-  private def close0(check: Boolean = true): Unit =
-    os.proc(home / "sbin" / "stop-slave.sh")
-      .call(cwd = home, env = extraEnv, check = check, stdin = os.Inherit, stdout = os.Inherit)
-  def tryClose(): Unit =
-    close0(check = false)
-  def close(): Unit =
-    close0()
-}
-
-// Start a Spark standalone master against the local distribution
-def sparkMaster = Task.Worker {
-  val home      = sparkHome().path
-  val host      = standaloneClusterHost
-  val masterUrl = s"spark://$host:7077"
-  val env       = java8Env(java8Home().path)
-  val handle    = new SparkMasterHandle(home, masterUrl, env)
-  handle.tryClose()
-  os.proc(home / "sbin" / "start-master.sh", "--host", host)
-    .call(cwd = home, env = env, stdin = os.Inherit, stdout = os.Inherit)
-  handle
-}
-
-// Start a Spark standalone worker (slave) attached to sparkMaster
-def sparkSlave = Task.Worker {
-  val home   = sparkHome().path
-  val host   = standaloneClusterHost
-  val master = sparkMaster().master
-  val env    = java8Env(java8Home().path)
-  val handle = new SparkSlaveHandle(home, env)
-  handle.tryClose()
-  os.proc(home / "sbin" / "start-slave.sh", "--host", host, master, "-c", "4", "-m", "4g")
-    .call(cwd = home, env = env, stdin = os.Inherit, stdout = os.Inherit)
-  handle
+private def sparkHome0 = sparkHome
+object `standalone-cluster` extends StandaloneCluster {
+  def sparkHome = sparkHome0
+  def extraEnv  = java8Env(java8Home().path)
 }
 
 // All modules whose artifacts the tests need to resolve at runtime, via the
@@ -485,10 +432,10 @@ object `standalone-tests` extends SbtModule with SparkTestsJvm {
   object test extends SbtTests with AmmSparkTests {
     def forkEnv = Task {
       // Bring up the standalone master and worker before running the tests.
-      sparkSlave()
+      `standalone-cluster`.sparkSlave()
       super.forkEnv() ++ Seq(
         "SPARK_HOME"               -> sparkHome().path.toString,
-        "STANDALONE_SPARK_MASTER"  -> sparkMaster().master,
+        "STANDALONE_SPARK_MASTER"  -> `standalone-cluster`.sparkMaster().master,
         "STANDALONE_SPARK_VERSION" -> sparkVersion()
       )
     }
