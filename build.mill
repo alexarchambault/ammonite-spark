@@ -203,38 +203,12 @@ trait Core  extends CrossSbtModule with WithPropertyFile with AmmSparkPublishMod
 // cluster tasks below. Only 2.4 version published with Scala 2.12.
 def sparkVersion = Task("2.4.2")
 
-// Build a local Spark distribution and return its SPARK_HOME.
-// Download a lightweight Spark distrib, run its jar-fetching script, then
-// drop Spark's REPL jar in favour of our stubs.
 def sparkHome = Task {
-  val ver = sparkVersion()
-  val url =
-    "https://github.com/scala-cli/lightweight-spark-distrib/releases/download/v0.0.4/" +
-      s"spark-$ver-bin-hadoop2.7-scala2.12.tgz"
-
-  val cache    = coursier.cache.FileCache()
-  val artifact = coursier.util.Artifact(url)
-  val archive = cache.file(artifact).run.unsafeRun(true)(using cache.ec) match {
-    case Left(err)   => throw new Exception(s"Error downloading $url: ${err.describe}", err)
-    case Right(file) => os.Path(file)
-  }
-
-  os.proc("tar", "-zxf", archive)
-    .call(cwd = Task.dest, stdin = os.Inherit, stdout = os.Inherit)
-
-  val sparkDir = os.list(Task.dest)
-    .filter(os.isDir)
-    .find(_.last.startsWith(s"spark-$ver-"))
-    .getOrElse(sys.error(s"No spark-$ver-* directory found after extracting $archive"))
-
-  // The lightweight distrib only ships a script that downloads the actual jars.
-  os.proc(sparkDir / "fetch-jars.sh")
-    .call(cwd = sparkDir, stdin = os.Inherit, stdout = os.Inherit)
-
-  // Drop Spark's own REPL jar and use our stubs in its place.
-  for (jar <- os.list(sparkDir / "jars") if jar.last.startsWith("spark-repl_"))
-    os.remove(jar)
-  os.copy.into(`spark-stubs_24`.jar().path, sparkDir / "jars")
+  val sparkDir = SparkHome.createDistributionUnder(
+    Task.dest,
+    sparkVersion(),
+    extraJars = Seq(`spark-stubs_24`.jar().path)
+  )
 
   PathRef(sparkDir)
 }
@@ -264,6 +238,16 @@ private def sparkHome0 = sparkHome
 object `standalone-cluster` extends StandaloneCluster {
   def sparkHome = sparkHome0
   def extraEnv  = java8Env(java8Home().path)
+
+  def testEnv: T[Map[String, String]] = Task {
+    // Bring up the standalone master and worker before running the tests.
+    `standalone-cluster`.sparkSlave()
+    Map(
+      "SPARK_HOME"               -> sparkHome().path.toString,
+      "STANDALONE_SPARK_MASTER"  -> sparkMaster().master,
+      "STANDALONE_SPARK_VERSION" -> sparkVersion()
+    )
+  }
 }
 
 // All modules whose artifacts the tests need to resolve at runtime, via the
@@ -285,25 +269,6 @@ def testRepo = Task {
   for (repo <- repoDirs)
     os.copy(repo.path, dest, mergeFolders = true, replaceExisting = true, createFolders = true)
   PathRef(dest)
-}
-
-trait RunClasspathAsJars extends JavaModule {
-  // ammonite-spark ships the REPL's runtime classpath to the Spark executors via
-  // sc.addJar, which only accepts JARs - directory entries are rejected with
-  // "Failed to add file:.../classes/ to Spark environment". Repackage every
-  // directory on the run classpath into a JAR so the whole classpath is JARs.
-  def runClasspath = Task {
-    super.runClasspath().zipWithIndex.map {
-      case (ref, idx) =>
-        if (os.isDir(ref.path)) {
-          val jar = Task.dest / s"run-$idx-${ref.path.last}.jar"
-          mill.util.Jvm.createJar(jar, Seq(ref.path))
-          PathRef(jar)
-        }
-        else
-          ref
-    }
-  }
 }
 
 trait AmmSparkTests extends TestModule {
@@ -431,13 +396,7 @@ object `standalone-tests` extends SbtModule with SparkTestsJvm {
 
   object test extends SbtTests with AmmSparkTests {
     def forkEnv = Task {
-      // Bring up the standalone master and worker before running the tests.
-      `standalone-cluster`.sparkSlave()
-      super.forkEnv() ++ Seq(
-        "SPARK_HOME"               -> sparkHome().path.toString,
-        "STANDALONE_SPARK_MASTER"  -> `standalone-cluster`.sparkMaster().master,
-        "STANDALONE_SPARK_VERSION" -> sparkVersion()
-      )
+      super.forkEnv() ++ `standalone-cluster`.testEnv()
     }
   }
 }
