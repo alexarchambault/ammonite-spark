@@ -131,7 +131,7 @@ export INPUT_TXT_URL="hdfs:///user/root/input.txt"
 
 if ! docker exec -t "$NAMENODE" /usr/local/hadoop/bin/hdfs dfs -ls hdfs:///user/root/input.txt; then
   echo "Copying file to $INPUT_TXT_URL"
-  (docker exec -i "$NAMENODE" /usr/local/hadoop/bin/hdfs dfs -put - "$INPUT_TXT_URL") < modules/tests/src/main/resources/input.txt
+  (docker exec -i "$NAMENODE" /usr/local/hadoop/bin/hdfs dfs -put - "$INPUT_TXT_URL") < modules/test-definitions/resources/input.txt
 fi
 
 if [ ! -d "$CACHE/hadoop-conf" ]; then

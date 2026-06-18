@@ -44,8 +44,6 @@ jobs:
     - name: Empty sources, orphan sources, missing test classes checks
       run: ./mill -i --import io.github.alexarchambault.mill::mill-checks:0.1.2 io.github.alexarchambault.millchecks.MillChecks/allChecks
       env:
-        MILL_CHECKS_ALLOW_EMPTY_SOURCES: >-
-          yarn-spark-distrib-tests
         MILL_CHECKS_ORPHAN_SOURCES_IGNORE: >-
           mill-build
     - name: Ensure computing non-final sources doesn't trigger compilation

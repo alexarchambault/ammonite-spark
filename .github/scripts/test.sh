@@ -13,7 +13,7 @@ case "${MASTER:-"local"}" in
   yarn)
     ./mill-in-docker-with-yarn-cluster.sh --prefetch 'yarn-tests._.testForked' ;;
   yarn-distrib)
-    ./mill-in-docker-with-yarn-cluster.sh yarn-spark-distrib-tests.test ;;
+    ./mill-in-docker-with-yarn-cluster.sh yarn-spark-distrib-tests.testForked ;;
   *)
     echo "Unrecognized master type $MASTER"
     exit 1
