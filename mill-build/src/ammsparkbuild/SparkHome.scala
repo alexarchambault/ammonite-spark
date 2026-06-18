@@ -1,5 +1,10 @@
 package ammsparkbuild
 
+import java.nio.charset.StandardCharsets
+import java.util.zip.ZipFile
+
+import scala.util.Using
+
 object SparkHome {
   // Build a local Spark distribution and return its SPARK_HOME.
   // Download a lightweight Spark distrib, run its jar-fetching script, then
@@ -7,7 +12,8 @@ object SparkHome {
   def createDistributionUnder(
     workingDir: os.Path,
     sparkVersion: String,
-    extraJars: Seq[os.Path]
+    extraJars: Seq[os.Path],
+    scalaVersion: String = ""
   ): os.Path = {
     val url =
       "https://github.com/scala-cli/lightweight-spark-distrib/releases/download/v0.0.4/" +
@@ -37,6 +43,41 @@ object SparkHome {
       os.remove(jar)
     for (jar <- extraJars)
       os.copy.into(jar, sparkDir / "jars")
+
+    if (scalaVersion.nonEmpty) {
+      val scalaVersionFromLibraryJar = {
+        val libraryJars = os.list(sparkDir / "jars")
+          .filter(_.last.startsWith("scala-library"))
+          .filter(_.last.endsWith(".jar"))
+          .filter(os.isFile)
+        assert(
+          libraryJars.nonEmpty,
+          s"No scala-library*.jar found under ${sparkDir / "jars"}"
+        )
+        assert(
+          libraryJars.length == 1,
+          s"Found too many scala-library*.jar files under ${sparkDir / "jars"}: ${libraryJars.map(_.subRelativeTo(sparkDir / "jars"))}"
+        )
+        val libraryJar = libraryJars.head
+        val foundVersion =
+          Using.resource(new ZipFile(libraryJar.toIO)) { zf =>
+            val ent = zf.getEntry("library.properties")
+            assert(ent != null, s"library.properties not found in $libraryJar")
+            val content = new String(zf.getInputStream(ent).readAllBytes(), StandardCharsets.UTF_8)
+            content
+              .linesIterator
+              .find(_.startsWith("version.number="))
+              .map(_.stripPrefix("version.number=").trim())
+              .getOrElse {
+                sys.error(s"No version.number=... line found in library.properties in $libraryJar")
+              }
+          }
+        assert(
+          scalaVersion == foundVersion,
+          s"Found Scala version $foundVersion in $libraryJar, expected $scalaVersion"
+        )
+      }
+    }
 
     sparkDir
   }

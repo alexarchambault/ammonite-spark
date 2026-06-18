@@ -268,17 +268,18 @@ def testRepo: T[PathRef] = {
 
 object SparkDistributions extends Module {
 
-  def scalaVersion = Versions.scala212 // FIXME Get this from Spark distrib
+  def scalaVersion = "2.12.8" // FIXME Validate this with Spark distrib
 
   // Spark version used to build the local distribution and run the standalone
   // cluster tasks below. Only 2.4 version published with Scala 2.12.
-  def sparkVersion = Task("2.4.2")
+  def sparkVersion = "2.4.2"
 
   def sparkHome = Task {
     val sparkDir = SparkHome.createDistributionUnder(
       Task.dest,
-      sparkVersion(),
-      extraJars = Seq(`spark-stubs_24`.jar().path)
+      sparkVersion,
+      extraJars = Seq(`spark-stubs_24`.jar().path),
+      scalaVersion = scalaVersion
     )
 
     PathRef(sparkDir)
@@ -287,7 +288,7 @@ object SparkDistributions extends Module {
   def testEnv: T[Map[String, String]] = Task {
     Map(
       "SPARK_HOME"    -> sparkHome().path.toString,
-      "SPARK_VERSION" -> sparkVersion()
+      "SPARK_VERSION" -> sparkVersion
     )
   }
 
@@ -323,7 +324,7 @@ object `standalone-cluster` extends StandaloneCluster {
     Map(
       "SPARK_HOME"               -> sparkHome().path.toString,
       "STANDALONE_SPARK_MASTER"  -> sparkMaster().master,
-      "STANDALONE_SPARK_VERSION" -> SparkDistributions.sparkVersion()
+      "STANDALONE_SPARK_VERSION" -> SparkDistributions.sparkVersion
     )
   }
 }
@@ -370,7 +371,7 @@ trait SparkTestsJvm extends JavaModule {
   def jvmId = "temurin:11"
 }
 
-object tests extends Cross[Tests](Versions.scala)
+object tests extends Cross[Tests]((Versions.scala ++ Seq(SparkDistributions.scalaVersion)).distinct)
 trait Tests  extends CrossSbtModule with WithPropertyFile with WithDependencyResourceFile
     with SparkTestsJvm {
   def propertyFilePath       = os.sub / "ammonite/ammonite-spark.properties"
