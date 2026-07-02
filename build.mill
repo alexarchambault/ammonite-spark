@@ -266,13 +266,20 @@ def testRepo: T[PathRef] = {
   }
 }
 
-object SparkDistributions extends Module {
+val sparkVersions = Seq("2.4.2")
+val scalaVersions = Map(
+  "2.4.2" -> "2.12.8"
+)
+val jvmIds = Map(
+  "2.4.2" -> "8"
+)
 
-  def scalaVersion = "2.12.8" // FIXME Validate this with Spark distrib
+object `spark-distribution` extends Cross[SparkDistribution](sparkVersions)
+trait SparkDistribution extends Cross.Module[String] {
 
-  // Spark version used to build the local distribution and run the standalone
-  // cluster tasks below. Only 2.4 version published with Scala 2.12.
-  def sparkVersion = "2.4.2"
+  def sparkVersion = crossValue
+
+  def scalaVersion = scalaVersions(sparkVersion)
 
   def sparkHome = Task {
     val sparkDir = SparkHome.createDistributionUnder(
@@ -291,32 +298,33 @@ object SparkDistributions extends Module {
       "SPARK_VERSION" -> sparkVersion
     )
   }
-
 }
 
-object `standalone-cluster` extends StandaloneCluster {
+object `standalone-cluster` extends Cross[StandaloneClusterModule](sparkVersions)
+trait StandaloneClusterModule extends StandaloneCluster with Cross.Module[String] {
 
-  // Spark 2.4 only runs on Java 8, while the Mill build itself runs on a newer
-  // JVM. Fetch a JDK 8 through the coursier-jvm API so the standalone master and
-  // worker scripts (which honour JAVA_HOME) launch with the right JVM.
-  def java8Home = Task {
+  def sparkDistribution: SparkDistribution = `spark-distribution`(crossValue)
+
+  private def jvmId = jvmIds(crossValue)
+
+  def javaHome = Task {
     val fileCache = coursier.cache.FileCache()
     val jvmCache = coursier.jvm.JvmCache()
       .withArchiveCache(coursier.cache.ArchiveCache().withCache(fileCache))
       .withDefaultIndex
     val javaHome = coursier.jvm.JavaHome().withCache(jvmCache)
-    val home     = javaHome.get("8").unsafeRun()(using fileCache.ec)
+    val home     = javaHome.get(jvmId).unsafeRun()(using fileCache.ec)
     PathRef(os.Path(home.getAbsoluteFile))
   }
 
-  def scalaVersion = SparkDistributions.scalaVersion
+  def scalaVersion = sparkDistribution.scalaVersion
 
-  def sparkHome = SparkDistributions.sparkHome
+  def sparkHome = sparkDistribution.sparkHome
   def extraEnv = Task {
-    val java8 = java8Home().path
+    val javaHome0 = javaHome().path
     Map(
-      "JAVA_HOME" -> java8.toString,
-      "PATH" -> s"${java8 / "bin"}${java.io.File.pathSeparator}${sys.env.getOrElse("PATH", "")}"
+      "JAVA_HOME" -> javaHome0.toString,
+      "PATH" -> s"${javaHome0 / "bin"}${java.io.File.pathSeparator}${sys.env.getOrElse("PATH", "")}"
     )
   }
 
@@ -326,7 +334,7 @@ object `standalone-cluster` extends StandaloneCluster {
     Map(
       "SPARK_HOME"               -> sparkHome().path.toString,
       "STANDALONE_SPARK_MASTER"  -> sparkMaster().master,
-      "STANDALONE_SPARK_VERSION" -> SparkDistributions.sparkVersion
+      "STANDALONE_SPARK_VERSION" -> sparkDistribution.sparkVersion
     )
   }
 }
@@ -377,7 +385,7 @@ trait SparkTestsJvm extends JavaModule {
 }
 
 object `test-definitions` extends Cross[TestDefinitions](
-      (Versions.scala ++ Seq(SparkDistributions.scalaVersion)).distinct
+      (Versions.scala ++ scalaVersions.values).distinct
     )
 trait TestDefinitions extends CrossScalaModule with WithPropertyFile with WithDependencyResourceFile
     with SparkTestsJvm {
@@ -412,22 +420,28 @@ trait LocalTests     extends CrossScalaModule with WithPropertyFile with WithDep
   )
 }
 
-object `local-spark-distrib-tests` extends ScalaModule with SparkTestsJvm with AmmSparkTests {
-  def scalaVersion = SparkDistributions.scalaVersion
+object `local-spark-distrib-tests` extends Cross[LocalSparkDistribTests](sparkVersions)
+trait LocalSparkDistribTests       extends ScalaModule with SparkTestsJvm with AmmSparkTests
+    with Cross.Module[String] {
+  def sparkDistribution = `spark-distribution`(crossValue)
+  def scalaVersion      = sparkDistribution.scalaVersion
   def moduleDeps = Seq(
-    `test-definitions`(SparkDistributions.scalaVersion)
+    `test-definitions`(sparkDistribution.scalaVersion)
   )
 
-  def forkEnv = super.forkEnv() ++ SparkDistributions.testEnv()
+  def forkEnv = super.forkEnv() ++ sparkDistribution.testEnv()
 }
 
-object `standalone-tests` extends ScalaModule with SparkTestsJvm with AmmSparkTests {
-  def scalaVersion = `standalone-cluster`.scalaVersion
+object `standalone-tests` extends Cross[StandaloneTests](sparkVersions)
+trait StandaloneTests     extends ScalaModule with SparkTestsJvm with AmmSparkTests
+    with Cross.Module[String] {
+  private val cluster = `standalone-cluster`(crossValue)
+  def scalaVersion    = cluster.scalaVersion
   def moduleDeps = Seq(
-    `test-definitions`(`standalone-cluster`.scalaVersion)
+    `test-definitions`(cluster.scalaVersion)
   )
   def forkEnv = Task {
-    super.forkEnv() ++ `standalone-cluster`.testEnv()
+    super.forkEnv() ++ cluster.testEnv()
   }
 }
 
@@ -439,11 +453,13 @@ trait YarnTests     extends CrossScalaModule with SparkTestsJvm with AmmSparkTes
   )
 }
 
-object `yarn-spark-distrib-tests` extends ScalaModule with SparkTestsJvm with AmmSparkTests
-    with RunClasspathAsJars {
-  def scalaVersion = SparkDistributions.scalaVersion
+object `yarn-spark-distrib-tests` extends Cross[YarnSparkDistribTests](sparkVersions)
+trait YarnSparkDistribTests       extends ScalaModule with SparkTestsJvm with AmmSparkTests
+    with RunClasspathAsJars with Cross.Module[String] {
+  def sparkDistribution = `spark-distribution`(crossValue)
+  def scalaVersion      = sparkDistribution.scalaVersion
   def moduleDeps = Seq(
-    `test-definitions`(SparkDistributions.scalaVersion)
+    `test-definitions`(sparkDistribution.scalaVersion)
   )
-  def forkEnv = super.forkEnv() ++ SparkDistributions.testEnv()
+  def forkEnv = super.forkEnv() ++ sparkDistribution.testEnv()
 }
