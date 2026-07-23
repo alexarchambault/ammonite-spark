@@ -176,6 +176,14 @@ object core extends Cross[Core](Versions.scala)
 trait Core  extends CrossScalaModule with WithPropertyFile with AmmSparkPublishModule
     with AmmSparkMima {
   def artifactName = "ammonite-spark"
+  // The AmmoniteSparkSessionBuilder is version-specific: the Spark <= 3 variant lives in
+  // src-spark3 and extends org.apache.spark.sql.SparkSession.Builder; the Spark 4 variant
+  // (src-spark4, used by the core-spark4 module) extends the classic builder instead. Everything
+  // else is shared in src.
+  def sources = Task.Sources(
+    BuildCtx.workspaceRoot / "modules" / "core" / "src",
+    BuildCtx.workspaceRoot / "modules" / "core" / "src-spark3"
+  )
   def compileMvnDeps = super.compileMvnDeps() ++ Seq(
     Deps.ammoniteReplApi,
     Deps.sparkSql(scalaVersion())
@@ -201,9 +209,41 @@ trait Core  extends CrossScalaModule with WithPropertyFile with AmmSparkPublishM
   }
 }
 
+// Spark 4 lives in its own module (rather than the Scala-version cross of `core`) because it must
+// compile against a different, source-incompatible SparkSession builder API and is Scala-2.13-only.
+// It reuses core's shared sources plus the Spark-4-specific builder in src-spark4, and is published
+// under a distinct artifact so it can coexist with the Spark <= 3 `ammonite-spark`.
+object `core-spark4` extends ScalaModule with WithPropertyFile with AmmSparkPublishModule
+    with Spark4Jvm {
+  def scalaVersion = Versions.scala213Spark4
+  def artifactName = "ammonite-spark-spark4"
+  def sources = Task.Sources(
+    BuildCtx.workspaceRoot / "modules" / "core" / "src",
+    BuildCtx.workspaceRoot / "modules" / "core" / "src-spark4"
+  )
+  def compileMvnDeps = super.compileMvnDeps() ++ Seq(
+    Deps.ammoniteReplApiSpark4,
+    Deps.sparkSql4
+  )
+  def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.classPathUtil,
+    Deps.jettyServer
+  )
+  def propertyFilePath =
+    os.sub / "org/apache/spark/sql/ammonitesparkinternals/ammonite-spark.properties"
+  def versionInProperties = publishVersion()
+}
+
 object `almond-spark` extends Cross[AlmondSpark](Versions.scala)
 trait AlmondSpark     extends CrossScalaModule with AmmSparkPublishModule
     with AmmSparkMima {
+  // Like core, the notebook builder is version-specific (Log4jFile + the SparkSession.Builder type
+  // differ on Spark 4); src-spark3 holds the Spark <= 3 variant, src-spark4 (used by
+  // almond-spark-spark4) the Spark 4 one, everything else is shared in src.
+  def sources = Task.Sources(
+    BuildCtx.workspaceRoot / "modules" / "almond-spark" / "src",
+    BuildCtx.workspaceRoot / "modules" / "almond-spark" / "src-spark3"
+  )
   def moduleDeps = super.moduleDeps ++ Seq(
     core()
   )
@@ -219,6 +259,36 @@ trait AlmondSpark     extends CrossScalaModule with AmmSparkPublishModule
       .exclude(("com.lihaoyi", s"ammonite-compiler_$crossScalaVersion"))
       .exclude(("com.lihaoyi", s"ammonite-repl-api_$crossScalaVersion")),
     Deps.sparkSql(scalaVersion())
+  )
+  def repositories = super.repositories() ++ Seq(
+    "jitpack"
+  )
+}
+
+// Spark 4 counterpart of almond-spark: Scala-2.13-only, depends on core-spark4, reuses the shared
+// notebook sources plus the Spark-4 builder in src-spark4, published as almond-spark-spark4.
+object `almond-spark-spark4` extends ScalaModule with AmmSparkPublishModule with Spark4Jvm {
+  def scalaVersion = Versions.scala213Spark4
+  def artifactName = "almond-spark-spark4"
+  def sources = Task.Sources(
+    BuildCtx.workspaceRoot / "modules" / "almond-spark" / "src",
+    BuildCtx.workspaceRoot / "modules" / "almond-spark" / "src-spark4"
+  )
+  def moduleDeps = super.moduleDeps ++ Seq(
+    `core-spark4`
+  )
+  def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.jsoniterScalaCore,
+    Deps.scalatags
+  )
+  def compileMvnDeps = super.compileMvnDeps() ++ Seq(
+    Deps.ammoniteReplApiSpark4,
+    Deps.jsoniterScalaMacros,
+    Deps.log4j2,
+    Deps.scalaKernelApiSpark4
+      .exclude(("com.lihaoyi", s"ammonite-compiler_${Versions.scala213Spark4}"))
+      .exclude(("com.lihaoyi", s"ammonite-repl-api_${Versions.scala213Spark4}")),
+    Deps.sparkSql4
   )
   def repositories = super.repositories() ++ Seq(
     "jitpack"
@@ -244,20 +314,60 @@ trait AlmondToreeSpark extends CrossScalaModule with AmmSparkPublishModule with 
   )
 }
 
+// Spark 4 counterpart of almond-toree-spark. Its only source (ToreeSql) is Spark-agnostic, so no
+// source split is needed - it just needs to depend on the Spark-4 almond-spark module.
+object `almond-toree-spark-spark4` extends ScalaModule with AmmSparkPublishModule with Spark4Jvm {
+  def scalaVersion = Versions.scala213Spark4
+  def artifactName = "almond-toree-spark-spark4"
+  def sources = Task.Sources(
+    BuildCtx.workspaceRoot / "modules" / "almond-toree-spark" / "src"
+  )
+  def moduleDeps = super.moduleDeps ++ Seq(
+    `almond-spark-spark4`
+  )
+  def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.almondToreeHooksSpark4
+  )
+  def compileMvnDeps = super.compileMvnDeps() ++ Seq(
+    Deps.scalaKernelApiSpark4
+      .exclude(("com.lihaoyi", s"ammonite-compiler_${Versions.scala213Spark4}"))
+      .exclude(("com.lihaoyi", s"ammonite-repl-api_${Versions.scala213Spark4}")),
+    Deps.sparkSql4
+  )
+  def repositories = super.repositories() ++ Seq(
+    "jitpack"
+  )
+}
+
 // Gather the publishLocalTestRepo of every module into a single local Maven
 // repository, so tests can resolve the just-built artifacts without polluting
 // ~/.ivy2/local via publishLocal.
 def testRepo: T[PathRef] = {
 
-  // All modules whose artifacts the tests need to resolve at runtime, via the
-  // `import $ivy.`sh.almond::ammonite-spark:…`` in the embedded Ammonite REPL
-  // (which also pulls the matching spark-stubs_* dynamically through coursier).
+  // Spark <= 3 modules. Deliberately does NOT include the Spark-4 modules, so a Spark <= 3 test
+  // build never has to build (and resolve) them — they need Java 17 and a Spark 4 / Ammonite 3.0.8
+  // toolchain. The Spark-4 modules live in testRepoSpark4 below.
   val publishModules: Seq[AmmSparkPublishModule] =
     Seq(`spark-stubs_24`, `spark-stubs_30`) ++
       `spark-stubs_32`.crossModules ++
       core.crossModules ++
       `almond-spark`.crossModules ++
       `almond-toree-spark`.crossModules
+
+  Task {
+    val repoDirs = Task.traverse(publishModules)(_.publishLocalTestRepo)()
+    val dest     = Task.dest / "repo"
+    for (repo <- repoDirs)
+      os.copy(repo.path, dest, mergeFolders = true, replaceExisting = true, createFolders = true)
+    PathRef(dest)
+  }
+}
+
+// The Spark-4 (Scala-2.13-only) artifacts, kept separate from testRepo so the two test tracks are
+// decoupled: the Spark-4 test modules resolve from here, the Spark <= 3 ones from testRepo.
+def testRepoSpark4: T[PathRef] = {
+  val publishModules: Seq[AmmSparkPublishModule] =
+    Seq(`core-spark4`, `almond-spark-spark4`, `almond-toree-spark-spark4`)
 
   Task {
     val repoDirs = Task.traverse(publishModules)(_.publishLocalTestRepo)()
@@ -371,6 +481,7 @@ trait AmmSparkTests extends TestModule {
         "--add-opens=java.base/java.util=ALL-UNNAMED",
         "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED",
         "--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED",
+        "--add-opens=java.base/jdk.internal.ref=ALL-UNNAMED",
         "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
         "--add-opens=java.base/sun.nio.cs=ALL-UNNAMED",
         "--add-opens=java.base/sun.security.action=ALL-UNNAMED",
@@ -378,11 +489,45 @@ trait AmmSparkTests extends TestModule {
         "--add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED"
       )
   }
+  // The local Maven repo the embedded Ammonite REPL resolves the just-built artifacts from.
+  // Spark <= 3 modules use testRepo; the Spark-4 modules override this with testRepoSpark4, so
+  // neither test track pulls in the other's modules.
+  def testArtifactsRepo: T[PathRef] = Task(testRepo())
   def forkEnv = super.forkEnv() ++ Seq(
     "COURSIER_REPOSITORIES" -> {
-      val repoUrl = testRepo().path.toNIO.toUri.toASCIIString
+      val repoUrl = testArtifactsRepo().path.toNIO.toUri.toASCIIString
       s"$repoUrl|central"
     }
+  )
+}
+
+// Shared test config for the Spark-4 test modules (local + yarn): resolve the just-built artifacts
+// from testRepoSpark4, and pass the Spark-4 JVM options beyond the shared --add-opens set.
+// `--add-modules=jdk.incubator.vector` can't go in the shared AmmSparkTests set because it doesn't
+// exist before Java 16 and would break the Java-11 Spark <= 3 forks;
+// `-Djdk.reflect.useDirectMethodHandle=false` keeps reflection-driven REPL output identical across
+// Java 17/21.
+trait Spark4Tests extends AmmSparkTests {
+  def testArtifactsRepo = Task(testRepoSpark4())
+  // Spark version the tests resolve at runtime, via the same AMMSPARK_SPARK_VERSION contract the
+  // Spark <= 3 test modules use (read by ammonite.spark.Versions). Unlike those, the Spark version
+  // is not a cross value here - the cross is over the JDK - so it comes from a Task.Input, which is
+  // re-read on every run: that is how the 4.0.0-compiled artifacts get exercised against a 4.1.x /
+  // 4.2.x runtime without touching the build.
+  def spark4TestSparkVersion = Task.Input {
+    sys.env.getOrElse("AMMSPARK_SPARK_VERSION", Versions.spark4Test)
+  }
+  def forkEnv = super.forkEnv() ++ Seq(
+    "AMMSPARK_SPARK_VERSION" -> spark4TestSparkVersion()
+  )
+  def forkArgs = super.forkArgs() ++ Seq(
+    "--add-modules=jdk.incubator.vector",
+    "-Djdk.reflect.useDirectMethodHandle=false",
+    "-Dio.netty.tryReflectionSetAccessible=true",
+    // No-op on Spark 4.0 (and on Java 17/21), but part of Spark 4.1+'s DEFAULT_MODULE_OPTIONS:
+    // it silences native-access warnings when exercising the artifacts against a 4.1.x / 4.2.x
+    // runtime (via AMMSPARK_SPARK_VERSION).
+    "--enable-native-access=ALL-UNNAMED"
   )
 }
 
@@ -408,6 +553,12 @@ trait SparkTestsJvm extends JavaModule {
       super.javacOptions
 }
 
+// Spark 4 supports Java 17/21 (not 8/11, nor the newer JVM Mill may itself run on), so its module
+// and tests are pinned to Java 17.
+trait Spark4Jvm extends JavaModule {
+  def jvmId = "temurin:17"
+}
+
 lazy val sparkDistributionScalaVersions = SparkVersions.sparkDistributions
   .map(d => d -> SparkHome.scalaVersionFromSparkDistribVersion(d.sparkVersion, d.hadoopVersion))
   .toMap
@@ -426,6 +577,32 @@ trait TestDefinitions     extends CrossScalaModule with WithPropertyFile
   def mvnDeps = super.mvnDeps() ++ Seq(
     Deps.ammoniteCompiler.exclude(("com.google.guava", "guava")),
     Deps.ammoniteRepl.exclude(("com.google.guava", "guava")),
+    Deps.slf4jLog4j12,
+    Deps.utest
+  )
+}
+
+// Spark-4 test definitions: the same shared sources/resources as test-definitions, but compiled
+// against Scala 2.13.16 + upstream Ammonite 3.0.8 so the embedded TestRepl matches the Ammonite the
+// Spark-4 artifacts run against.
+object `test-definitions-spark4` extends ScalaModule with WithPropertyFile
+    with WithDependencyResourceFile with Spark4Jvm {
+  def scalaVersion           = Versions.scala213Spark4
+  def propertyFilePath       = os.sub / "ammonite/ammonite-spark.properties"
+  def versionInProperties    = `core-spark4`.publishVersion()
+  def dependencyResourcePath = os.sub / "ammonite/spark/amm-test-dependencies.txt"
+
+  def sources = Task.Sources(
+    BuildCtx.workspaceRoot / "modules" / "test-definitions" / "src"
+  )
+  def testDefResources = Task.Sources(
+    BuildCtx.workspaceRoot / "modules" / "test-definitions" / "resources"
+  )
+  def resources = Task(super.resources() ++ testDefResources())
+
+  def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.ammoniteCompilerSpark4.exclude(("com.google.guava", "guava")),
+    Deps.ammoniteReplSpark4.exclude(("com.google.guava", "guava")),
     Deps.slf4jLog4j12,
     Deps.utest
   )
@@ -468,6 +645,45 @@ trait LocalTests     extends ScalaModule with Cross.Module[SparkMaven] with With
 
   def forkEnv = super.forkEnv() ++ Seq(
     "AMMSPARK_SPARK_VERSION" -> crossValue.sparkVersion
+  )
+}
+
+// Runs the shared test-definitions against Spark 4 with a local[*] master, on Java 17 and 21
+// (Spark 4 supports both). The Spark version itself comes from Spark4Tests (AMMSPARK_SPARK_VERSION,
+// defaulting to Versions.spark4Test) rather than from a cross value, so the cross stays 1-D.
+val spark4TestJvmIds = Seq("17", "21")
+
+object `local-tests-spark4` extends Cross[LocalTestsSpark4](spark4TestJvmIds)
+trait LocalTestsSpark4      extends ScalaModule with WithPropertyFile
+    with WithDependencyResourceFile with Spark4Tests with Cross.Module[String] {
+  // crossValue is the JDK major to run the tests on (17 or 21).
+  def jvmId                  = s"temurin:$crossValue"
+  def scalaVersion           = Versions.scala213Spark4
+  def propertyFilePath       = os.sub / "ammonite/ammonite-spark.properties"
+  def versionInProperties    = `core-spark4`.publishVersion()
+  def dependencyResourcePath = os.sub / "ammonite/spark/amm-test-dependencies.txt"
+
+  def moduleDeps = Seq(
+    `test-definitions-spark4`
+  )
+
+  def mvnDeps = super.mvnDeps() ++ Seq(
+    Deps.ammoniteCompilerSpark4.exclude(("com.google.guava", "guava")),
+    Deps.ammoniteReplSpark4.exclude(("com.google.guava", "guava")),
+    Deps.slf4jLog4j12,
+    Deps.utest
+  )
+}
+
+// Spark-4 counterpart of yarn-tests. Like the Spark 3.2 YARN cross values, the actual YARN test is
+// disabled (Yarn40Tests is an empty stub with the real test commented out) until the dockerized YARN
+// cluster is upgraded from hadoop-2.7 to hadoop 3 — Spark >= 3.2, and hence Spark 4, need hadoop 3.
+// The module is otherwise fully wired, so enabling it is just uncommenting Yarn40Tests.
+object `yarn-tests-spark4` extends ScalaModule with Spark4Jvm with Spark4Tests
+    with RunClasspathAsJars {
+  def scalaVersion = Versions.scala213Spark4
+  def moduleDeps = Seq(
+    `test-definitions-spark4`
   )
 }
 

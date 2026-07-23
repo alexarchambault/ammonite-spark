@@ -22,11 +22,20 @@ object Deps {
   def slf4jLog4j12   = mvn"org.slf4j:slf4j-log4j12:1.7.36"
   def scalaKernelApi = mvn"sh.almond:::scala-kernel-api:${Versions.almond}"
   def scalatags      = mvn"com.lihaoyi::scalatags:0.13.1"
+
+  // Spark-4 module variants, matching almond 0.14.5 exactly: upstream Ammonite 3.0.8 (com.lihaoyi,
+  // not the sh.almond.tmp.ammonite fork) and almond 0.14.5, both on Scala 2.13.16.
+  def ammoniteReplApiSpark4  = mvn"com.lihaoyi:::ammonite-repl-api:${Versions.ammoniteSpark4}"
+  def ammoniteCompilerSpark4 = mvn"com.lihaoyi:::ammonite-compiler:${Versions.ammoniteSpark4}"
+  def ammoniteReplSpark4     = mvn"com.lihaoyi:::ammonite-repl:${Versions.ammoniteSpark4}"
+  def scalaKernelApiSpark4   = mvn"sh.almond:::scala-kernel-api:${Versions.almondSpark4}"
+  def almondToreeHooksSpark4 = mvn"sh.almond::toree-hooks:${Versions.almondSpark4}"
   def sparkSql(sv: String) = {
     val ver =
       if (sv.startsWith("2.12.")) "2.4.0"
       else "3.2.0"
     mvn"org.apache.spark::spark-sql:$ver"
   }
-  def utest = mvn"com.lihaoyi::utest:0.9.5"
+  def sparkSql4 = mvn"org.apache.spark::spark-sql:${Versions.spark4}"
+  def utest     = mvn"com.lihaoyi::utest:0.9.5"
 }

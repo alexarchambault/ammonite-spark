@@ -37,7 +37,8 @@ object Init {
     sparkVersion: String,
     conf: Seq[(String, String)],
     prependBuilderCalls: Seq[String] = Nil,
-    loadSparkSql: Boolean = true
+    loadSparkSql: Boolean = true,
+    ammoniteSparkArtifact: String = "ammonite-spark"
   ): String = {
 
     val optionalSparkSqlImport =
@@ -49,7 +50,7 @@ object Init {
         s"""
             @ ${optionalSparkSqlImport.fold("")(
             _ + "; "
-          )}import $$ivy.`sh.almond::ammonite-spark:$version`
+          )}import $$ivy.`sh.almond::$ammoniteSparkArtifact:$version`
 
             @ import org.apache.spark.sql._
 
@@ -67,7 +68,8 @@ object Init {
     sparkVersion: String,
     conf: Seq[(String, String)],
     prependBuilderCalls: Seq[String] = Nil,
-    loadSparkSql: Boolean = true
+    loadSparkSql: Boolean = true,
+    ammoniteSparkArtifact: String = "ammonite-spark"
   ): String = {
 
     val optionalSparkSqlImport =
@@ -77,7 +79,7 @@ object Init {
         None
 
     s"""${optionalSparkSqlImport.fold("")(_ + "; ")}
-       |import $$ivy.`sh.almond::ammonite-spark:$version`
+       |import $$ivy.`sh.almond::$ammoniteSparkArtifact:$version`
        |import org.apache.spark.sql._
        |
        |assert(org.apache.spark.SPARK_VERSION == "$sparkVersion") // sanity check

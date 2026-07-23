@@ -24,3 +24,23 @@ The builder created via `AmmoniteSparkSession.builder()` extends the one from `S
 - it starts a small web server that exposes the classes resulting from compiling the code entered at the Ammonite prompt, and passes its address to Spark via `"spark.repl.class.uri"` in the SparkConf.
 
 - one can call `.progressBars()` on the builder to force Spark to display progress bars in the console
+
+## Spark 4
+
+Spark 4 support is provided by a separate, Scala-2.13-only set of artifacts (`ammonite-spark-spark4`,
+`almond-spark-spark4`, `almond-toree-spark-spark4`) that coexist with the Spark ≤ 3 ones. The jar /
+`spark.jars` / `spark.yarn.jars` machinery above is unchanged, but two things differ, because Spark 4
+refactored the relevant internals (see `ARCHITECTURE.md` §6 for the full details):
+
+- **REPL classes reach the executors differently.** Spark 4's executor-side class loader
+  (`org.apache.spark.executor.ExecutorClassLoader`, now in `spark-core`) dropped the HTTP fetch path,
+  so the small web server / `spark.repl.class.uri` approach isn't used. Instead the builder sets
+  `spark.repl.class.outputDir` to the directory Ammonite writes compiled cell classes to, and Spark's
+  own driver class-file server serves them to executors over its RPC channel. This means **Ammonite
+  must be started with an output directory** (`--tmp-output-directory`; almond ≥ 0.14 does this by
+  default) — the Spark-4 builder fails fast with an explanatory message otherwise. No `spark-stubs_*`
+  is used or needed on Spark 4.
+
+- **The builder extends the *classic* `SparkSession.Builder`.** Spark 4 split `SparkSession` into an
+  abstract `org.apache.spark.sql.SparkSession` and a concrete `org.apache.spark.sql.classic.SparkSession`;
+  only the classic builder creates a driver-backed session, so the Spark-4 builder extends that one.

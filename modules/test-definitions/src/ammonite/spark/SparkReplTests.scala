@@ -13,9 +13,18 @@ class SparkReplTests(
 
   private def is212 = versionNumberString.startsWith("2.12.")
 
+  // Spark 4 moved the concrete Dataset implementation to org.apache.spark.sql.classic.Dataset,
+  // so the REPL renders its type as `classic.Dataset[…]` rather than `Dataset[…]`.
+  private def datasetType =
+    if (sparkVersion.startsWith("4.")) "classic.Dataset" else "Dataset"
+
   // Most of the tests here were adapted from https://github.com/apache/spark/blob/ab18b02e66fd04bc8f1a4fb7b6a7f2773902a494/repl/src/test/scala/org/apache/spark/repl/SingletonReplSuite.scala
 
   Init.setupLog4j()
+
+  // Overridden by the Spark 4 tests, which resolve a distinct artifact
+  // (ammonite-spark-spark4) compiled against the classic SparkSession API.
+  def ammoniteSparkArtifact: String = "ammonite-spark"
 
   val check: TestRepl = new TestRepl {
     override def initialClassPath =
@@ -24,7 +33,16 @@ class SparkReplTests(
 
     override def predef =
       if (initFromPredef)
-        (Init.scriptInit(master, sparkVersion, conf, loadSparkSql = !sparkHomeBased), None)
+        (
+          Init.scriptInit(
+            master,
+            sparkVersion,
+            conf,
+            loadSparkSql = !sparkHomeBased,
+            ammoniteSparkArtifact = ammoniteSparkArtifact
+          ),
+          None
+        )
       else
         ("", None)
   }
@@ -40,7 +58,7 @@ class SparkReplTests(
     else if (sparkHomeBased)
       Init.sparkHomeInit(master, sparkVersion, conf)
     else
-      Init.init(master, sparkVersion, conf)
+      Init.init(master, sparkVersion, conf, ammoniteSparkArtifact = ammoniteSparkArtifact)
 
   if (init.nonEmpty)
     check.session(init)
@@ -253,7 +271,7 @@ class SparkReplTests(
 
     test("Datasets and encoders") {
       sparkSession(
-        """
+        s"""
             @ import spark.implicits._
             import spark.implicits._
 
@@ -279,7 +297,7 @@ class SparkReplTests(
             @ }.toColumn
 
             @ val ds = Seq(1, 2, 3, 4).toDS()
-            ds: Dataset[Int] = [value: int]
+            ds: $datasetType[Int] = [value: int]
 
             @ val res = ds.select(simpleSum).collect()
             res: Array[Int] = Array(10)

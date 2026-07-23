@@ -15,8 +15,9 @@ Run [spark](https://spark.apache.org/) calculations from [Ammonite](http://ammon
    1. [Syncing dependencies](#syncing-dependencies)
 3. [Using with standalone cluster](#using-with-standalone-cluster)
 4. [Using with YARN cluster](#using-with-yarn-cluster)
-5. [Troubleshooting](#troubleshooting)
-6. [Compatibility](#compatibility)
+5. [Using with Spark 4](#using-with-spark-4)
+6. [Troubleshooting](#troubleshooting)
+7. [Compatibility](#compatibility)
 
 
 
@@ -36,6 +37,8 @@ or [Scala CLI](https://github.com/VirtusLab/scala-cli)
 $ scala-cli repl --amm --ammonite-version 3.0.0-M0-60-89836cd8 --scala 2.13.12 -- --class-based --tmp-output-directory
 ```
 Ensure you are using scala 2.12 or 2.13, the only supported Scala versions as of writing this.
+(For **Spark 4**, use Scala 2.13 on Java 17 and the `*-spark4` artifacts — see
+[Using with Spark 4](#using-with-spark-4).)
 
 At the Ammonite prompt, load the Spark 2.x or 3.x version of your choice, along with ammonite-spark,
 ```scala
@@ -43,6 +46,8 @@ At the Ammonite prompt, load the Spark 2.x or 3.x version of your choice, along 
 @ import $ivy.`sh.almond::ammonite-spark:0.13.12`
 ```
 (Note the two `::` before `spark-sql` or `ammonite-spark`, as these are scala dependencies.)
+(For Spark 4.x, import `sh.almond::ammonite-spark-spark4` instead — see
+[Using with Spark 4](#using-with-spark-4).)
 
 Then create a `SparkSession` using the builder provided by *ammonite-spark*
 ```scala
@@ -104,6 +109,33 @@ Ensure the configuration directory of the cluster is set in `HADOOP_CONF_DIR` or
 
 Before raising issues, ensure you are aware of all that needs to be set up to get a working spark-shell from a Spark distribution, and that all of them are passed in one way or another to the SparkSession created from Ammonite.
 
+## Using with Spark 4
+
+Apache Spark 4 is supported through a separate, **Scala 2.13-only** set of artifacts that require
+**Java 17**: `ammonite-spark-spark4` (and, for notebooks, `almond-spark-spark4` /
+`almond-toree-spark-spark4`). They are built against upstream Ammonite `3.0.8` and almond `0.14.5`.
+
+Load the Spark 4 version of your choice together with `ammonite-spark-spark4`:
+```scala
+@ import $ivy.`org.apache.spark::spark-sql:4.0.3`
+@ import $ivy.`sh.almond::ammonite-spark-spark4:<version>`
+
+@ import org.apache.spark.sql._
+
+@ val spark = AmmoniteSparkSession.builder().master("local[*]").getOrCreate()
+```
+
+Notes specific to Spark 4:
+- Start Ammonite with `--tmp-output-directory` (or otherwise set an output directory). Spark 4's
+  executor-side class loader no longer fetches REPL classes over HTTP, so ammonite-spark hands them
+  to Spark via `spark.repl.class.outputDir`; without an output directory the builder fails fast with
+  an explanatory message. almond ≥ 0.14 sets a temporary output directory by default, so notebooks
+  need no extra flag.
+- The Spark version, Scala version (2.13) and — for external clusters — the cluster's Spark/Scala
+  versions must match, exactly as for Spark ≤ 3.
+
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) §6 for the design and the full list of changes.
+
 ## Troubleshooting
 
 ### Getting `org.apache.spark.sql.AnalysisException` when calling `.toDS`
@@ -153,3 +185,7 @@ with for sure.
 | `0.13.2`          | `2.5.4-14-dc4c47bc` | `0.13.2` |
 | ...               | ...                 | ...      |
 [ `0.13.9`          | `3.0.0-M0-17-e7a04255` | `0.13.11` |
+
+The **Spark 4** artifacts (`ammonite-spark-spark4` etc.) are a separate, Scala-2.13-only build
+tracked outside this table: they are compiled against upstream Ammonite `3.0.8` and almond `0.14.5`,
+and require Java 17. See [`ARCHITECTURE.md`](ARCHITECTURE.md) §6 for details.

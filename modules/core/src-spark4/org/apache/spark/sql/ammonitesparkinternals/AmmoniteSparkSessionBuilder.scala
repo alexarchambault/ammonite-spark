@@ -11,7 +11,10 @@ import coursier.cputil.ClassPathUtil
 import coursierapi.Dependency
 import org.apache.spark.SparkContext
 import org.apache.spark.scheduler.{SparkListener, SparkListenerApplicationEnd}
-import org.apache.spark.sql.SparkSession
+// Spark 4 split the SparkSession API into an abstract `org.apache.spark.sql.SparkSession`
+// (in sql-api) and the concrete `org.apache.spark.sql.classic.SparkSession`. Only the classic
+// builder actually creates a running (driver-backed) session, so we extend that one here.
+import org.apache.spark.sql.classic.SparkSession
 import org.apache.spark.ui.ConsoleProgressBar
 
 import scala.collection.JavaConverters._
@@ -274,19 +277,26 @@ class AmmoniteSparkSessionBuilder(implicit
 
   private val options0: scala.collection.Map[String, String] = {
 
-    def fieldVia(name: String): Option[scala.collection.mutable.HashMap[String, String]] =
-      try {
-        val f = classOf[SparkSession.Builder].getDeclaredField(name)
-        f.setAccessible(true)
-        Some(f.get(this).asInstanceOf[scala.collection.mutable.HashMap[String, String]])
-      }
-      catch {
-        case _: NoSuchFieldException =>
-          None
-      }
+    // In Spark 4 the builder's `options` map is a `protected val` declared on the
+    // `org.apache.spark.sql.SparkSessionBuilder` superclass, not on `SparkSession.Builder`
+    // itself - so we walk the class hierarchy rather than using a single getDeclaredField.
+    def fieldVia(name: String): Option[scala.collection.mutable.HashMap[String, String]] = {
+      def search(cl: Class[_]): Option[java.lang.reflect.Field] =
+        if (cl == null) None
+        else
+          try Some(cl.getDeclaredField(name))
+          catch {
+            case _: NoSuchFieldException => search(cl.getSuperclass)
+          }
 
-    fieldVia("org$apache$spark$sql$SparkSession$Builder$$options")
-      .orElse(fieldVia("options"))
+      search(getClass).map { f =>
+        f.setAccessible(true)
+        f.get(this).asInstanceOf[scala.collection.mutable.HashMap[String, String]]
+      }
+    }
+
+    fieldVia("options")
+      .orElse(fieldVia("org$apache$spark$sql$SparkSession$Builder$$options"))
       .getOrElse {
         printLine(
           "Warning: can't read SparkSession Builder options (options field not found)",
@@ -402,7 +412,8 @@ class AmmoniteSparkSessionBuilder(implicit
       deps = ("spark-hive", SparkDependencies.sparkHiveDependency) :: deps
 
     if (!SparkDependencies.sparkExecutorClassLoaderFound())
-      deps = ("spark-stubs", SparkDependencies.stubsDependency) :: deps
+      for (stub <- SparkDependencies.stubsDependencyOpt)
+        deps = ("spark-stubs", stub) :: deps
 
     if (isYarn() && !SparkDependencies.sparkYarnFound())
       deps = ("spark-yarn", SparkDependencies.sparkYarnDependency) :: deps
@@ -524,22 +535,20 @@ class AmmoniteSparkSessionBuilder(implicit
     if (interpApi != null)
       interpApi._compilerManager.outputDir match {
         case None =>
-          if (replApi != null) {
-            val classServer = new AmmoniteClassServer(
-              host(),
-              bindAddress(),
-              options0.get("spark.repl.class.port").fold(AmmoniteClassServer.randomPort())(_.toInt),
-              replApi.sess.frames
-            )
-            classServerOpt = Some(classServer)
-
-            config("spark.repl.class.uri", classServer.uri.toString)
-
-            System.err.println(
-              "Warning: Ammonite output directory not specified upon launch. " +
-                "Relying on the spark.repl.class.uri property, which might have issues in tight network environments."
-            )
-          }
+          // Spark 4 removed the HTTP fetch path from its executor-side class loader
+          // (org.apache.spark.executor.ExecutorClassLoader now only speaks the `spark://`
+          // RPC scheme), so the AmmoniteClassServer approach used for Spark <= 3 no longer
+          // works. REPL-compiled classes must instead be written to an output directory that
+          // Spark's own driver class-file server exposes over RPC. That requires launching
+          // Ammonite with the --tmp-output-directory option (or otherwise setting an output
+          // directory), so fail fast with an actionable message rather than silently failing
+          // on the executors.
+          throw new Exception(
+            "Ammonite output directory not specified upon launch. " +
+              "With Spark 4, ammonite-spark needs it to expose REPL-compiled classes to the " +
+              "Spark executors (the older HTTP class server is not supported by Spark 4). " +
+              "Restart Ammonite with the --tmp-output-directory option (Ammonite >= 3.0.0-M0-14)."
+          )
 
         case Some(outputDir) =>
           config("spark.repl.class.outputDir", outputDir.toAbsolutePath.toString)

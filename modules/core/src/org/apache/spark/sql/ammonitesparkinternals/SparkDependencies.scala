@@ -25,8 +25,15 @@ object SparkDependencies {
       "org.apache.spark.sql.hive.HiveSessionStateBuilder"
     )
 
-  private def sparkYarnClass                = "org.apache.spark.deploy.yarn.Client"
-  private def sparkExecutorClassLoaderClass = "org.apache.spark.repl.ExecutorClassLoader"
+  private def sparkYarnClass = "org.apache.spark.deploy.yarn.Client"
+  // Spark <= 3 ships this class in the spark-repl module (package org.apache.spark.repl); Spark 4
+  // moved it into spark-core (package org.apache.spark.executor). Either one being already present
+  // means we don't need to supply our own stub.
+  private def sparkExecutorClassLoaderClasses =
+    List(
+      "org.apache.spark.executor.ExecutorClassLoader",
+      "org.apache.spark.repl.ExecutorClassLoader"
+    )
 
   def sparkHiveFound(): Boolean =
     sparkHiveClasses.exists { className =>
@@ -51,13 +58,15 @@ object SparkDependencies {
     }
 
   def sparkExecutorClassLoaderFound(): Boolean =
-    try {
-      Thread.currentThread().getContextClassLoader.loadClass(sparkExecutorClassLoaderClass)
-      true
-    }
-    catch {
-      case _: ClassNotFoundException =>
-        false
+    sparkExecutorClassLoaderClasses.exists { className =>
+      try {
+        Thread.currentThread().getContextClassLoader.loadClass(className)
+        true
+      }
+      catch {
+        case _: ClassNotFoundException =>
+          false
+      }
     }
 
   private def sparkModules(): Seq[String] = {
@@ -95,26 +104,46 @@ object SparkDependencies {
     b.result()
   }
 
-  def stubsDependency = {
+  // Kept with its original signature, for binary compatibility with the previously published
+  // versions of this artifact. Spark <= 3 - the only Spark this artifact supports - always has a
+  // stub, so this never errors here; the Spark 4 artifact uses stubsDependencyOpt instead.
+  def stubsDependency: Dependency =
+    stubsDependencyOpt.getOrElse {
+      sys.error(
+        s"No spark-stubs artifact for Spark ${org.apache.spark.SPARK_VERSION} " +
+          "(Spark >= 4 needs none - use stubsDependencyOpt)"
+      )
+    }
+
+  // Returns None on Spark >= 4, which ships its own executor-side class loader and therefore needs
+  // no stub - hence an Option rather than a plain Dependency.
+  def stubsDependencyOpt: Option[Dependency] = {
     val sv = org.apache.spark.SPARK_VERSION
-    val suffix = sv.split('.').take(2) match {
+    val suffixOpt = sv.split('.').take(2) match {
       case Array("2", n) if Try(n.toInt).toOption.exists(_ <= 3) =>
-        "20"
+        Some("20")
       case Array("2", n) if Try(n.toInt).toOption.exists(_ >= 4) =>
-        "24"
+        Some("24")
       case Array("3", n) if Try(n.toInt).toOption.exists(_ <= 1) =>
-        "30"
-      case Array("3", n) =>
-        "32"
+        Some("30")
+      case Array("3", _) =>
+        Some("32")
+      case Array(major, _) if Try(major.toInt).toOption.exists(_ >= 4) =>
+        // Spark >= 4 ships its own executor-side class loader (org.apache.spark.executor.
+        // ExecutorClassLoader in spark-core) and supports the spark.repl.class.outputDir
+        // mechanism, so no ammonite-spark stub is needed.
+        None
       case _ =>
         System.err.println(s"Warning: unrecognized Spark version ($sv), assuming 2.4.x")
-        "24"
+        Some("24")
     }
-    Dependency.of(
-      "sh.almond",
-      s"spark-stubs_${suffix}_$sbv",
-      Properties.version
-    )
+    suffixOpt.map { suffix =>
+      Dependency.of(
+        "sh.almond",
+        s"spark-stubs_${suffix}_$sbv",
+        Properties.version
+      )
+    }
   }
 
   def sparkYarnDependency =
@@ -135,9 +164,9 @@ object SparkDependencies {
     Seq(
       Dependency.of("org.scala-lang", "scala-library", scalaVersion),
       Dependency.of("org.scala-lang", "scala-reflect", scalaVersion),
-      Dependency.of("org.scala-lang", "scala-compiler", scalaVersion),
-      stubsDependency // for ExecutorClassLoader
+      Dependency.of("org.scala-lang", "scala-compiler", scalaVersion)
     ) ++
+      stubsDependencyOpt.toSeq ++ // for ExecutorClassLoader (Spark <= 3 only)
       sparkModules().map { m =>
         Dependency.of("org.apache.spark", s"spark-${m}_$sbv", org.apache.spark.SPARK_VERSION)
       }
