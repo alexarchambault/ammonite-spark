@@ -3,7 +3,7 @@ set -e
 
 case "${MASTER:-"local"}" in
   local)
-    ./mill local-tests._.testForked
+    ./mill local-tests.__.testForked
     ./mill __.mimaReportBinaryIssues
     ;;
   local-distrib)

@@ -1,7 +1,7 @@
 package ammonite.spark
 
-object Local32ScriptTests extends SparkReplTests(
-      SparkVersions.latest32,
+object LocalScriptTests extends SparkReplTests(
+      Versions.sparkVersion,
       Local.master
     ) {
   override def initFromPredef = true

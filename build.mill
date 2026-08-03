@@ -8,6 +8,7 @@ import ammsparkbuild.*
 import com.github.lolgab.mill.mima.Mima
 import mill.*
 import mill.api.*
+import mill.javalib.api.JvmWorkerUtil
 import mill.scalalib.*
 import mill.util.VcsVersion
 
@@ -401,15 +402,31 @@ trait TestDefinitions extends CrossScalaModule with WithPropertyFile with WithDe
   )
 }
 
-object `local-tests` extends Cross[LocalTests](Versions.scala)
-trait LocalTests     extends CrossScalaModule with WithPropertyFile with WithDependencyResourceFile
+def scalaSparkVersions: Seq[(String, String)] = Versions.scala.flatMap { sv =>
+  val sparkVersions              = Seq("3.2.0")
+  val extraScala212SparkVersions = Seq("2.4.4", "3.0.0")
+
+  sparkVersions.map((sv, _)) ++ {
+    if (sv.startsWith("2.12.")) extraScala212SparkVersions.map((sv, _))
+    else Nil
+  }
+}
+
+object `local-tests` extends Cross[LocalTests](scalaSparkVersions)
+trait LocalTests     extends ScalaModule with Cross.Module2[String, String] with WithPropertyFile
+    with WithDependencyResourceFile
     with SparkTestsJvm with AmmSparkTests {
+
+  private def sv = crossValue
+
+  def scalaVersion = sv
+
   def propertyFilePath       = os.sub / "ammonite/ammonite-spark.properties"
-  def versionInProperties    = core().publishVersion()
+  def versionInProperties    = core(sv).publishVersion()
   def dependencyResourcePath = os.sub / "ammonite/spark/amm-test-dependencies.txt"
 
   def moduleDeps = Seq(
-    `test-definitions`()
+    `test-definitions`(sv)
   )
 
   def mvnDeps = super.mvnDeps() ++ Seq(
@@ -417,6 +434,10 @@ trait LocalTests     extends CrossScalaModule with WithPropertyFile with WithDep
     Deps.ammoniteRepl.exclude(("com.google.guava", "guava")),
     Deps.slf4jLog4j12,
     Deps.utest
+  )
+
+  def forkEnv = super.forkEnv() ++ Seq(
+    "AMMSPARK_SPARK_VERSION" -> crossValue2
   )
 }
 
