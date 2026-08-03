@@ -3,7 +3,7 @@ package ammonite.spark
 import ammonite.spark.fromammonite.TestRepl
 import utest._
 
-class ProgressBarTests(sparkVersion: String, master: String, conf: (String, String)*)
+class ProgressBarTestsDefinitions(sparkVersion: String, master: String, conf: (String, String)*)
     extends TestSuite {
 
   Init.setupLog4j()

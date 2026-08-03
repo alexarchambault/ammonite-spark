@@ -3,7 +3,7 @@ set -e
 
 case "${MASTER:-"local"}" in
   local)
-    ./mill local-tests._.testForked
+    ./mill local-tests.__.testForked
     ./mill __.mimaReportBinaryIssues
     ;;
   local-distrib)
@@ -11,7 +11,7 @@ case "${MASTER:-"local"}" in
   standalone)
     ./mill standalone-tests._.testForked ;;
   yarn)
-    ./mill-in-docker-with-yarn-cluster.sh --prefetch 'yarn-tests._.testForked' ;;
+    ./mill-in-docker-with-yarn-cluster.sh --prefetch 'yarn-tests.__.testForked' ;;
   yarn-distrib)
     ./mill-in-docker-with-yarn-cluster.sh yarn-spark-distrib-tests._.testForked ;;
   *)
