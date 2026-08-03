@@ -466,11 +466,27 @@ trait StandaloneTests     extends ScalaModule with SparkTestsJvm with AmmSparkTe
   }
 }
 
-object `yarn-tests` extends Cross[YarnTests](Versions.scala)
-trait YarnTests     extends CrossScalaModule with SparkTestsJvm with AmmSparkTests
+object `yarn-tests` extends Cross[YarnTests](
+      scalaSparkVersions
+        // Temporarily disabled, until we can (either or both)
+        // - enable the hadoop-2.7 profile (and excluding the remaining hadoop 3 dependencies?) when fetching Spark dependencies
+        // - update the docker-based hadoop setup in the tests to hadoop 3
+        .filter(!_._2.startsWith("3.2."))
+    )
+trait YarnTests extends ScalaModule with Cross.Module2[String, String] with SparkTestsJvm
+    with AmmSparkTests
     with RunClasspathAsJars {
+
+  private def sv = crossValue
+
+  def scalaVersion = sv
+
   def moduleDeps = Seq(
-    `test-definitions`()
+    `test-definitions`(sv)
+  )
+
+  def forkEnv = super.forkEnv() ++ Seq(
+    "AMMSPARK_SPARK_VERSION" -> crossValue2
   )
 }
 
