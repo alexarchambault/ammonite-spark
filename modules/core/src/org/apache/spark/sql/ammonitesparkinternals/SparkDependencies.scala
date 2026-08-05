@@ -25,8 +25,20 @@ object SparkDependencies {
       "org.apache.spark.sql.hive.HiveSessionStateBuilder"
     )
 
-  private def sparkYarnClass                = "org.apache.spark.deploy.yarn.Client"
+  private def sparkYarnClass = "org.apache.spark.deploy.yarn.Client"
+  private def yarnAmIpFilterClass =
+    "org.apache.hadoop.yarn.server.webproxy.amfilter.AmIpFilter"
   private def sparkExecutorClassLoaderClass = "org.apache.spark.repl.ExecutorClassLoader"
+
+  private def classFound(className: String): Boolean =
+    try {
+      Thread.currentThread().getContextClassLoader.loadClass(className)
+      true
+    }
+    catch {
+      case _: ClassNotFoundException =>
+        false
+    }
 
   def sparkHiveFound(): Boolean =
     sparkHiveClasses.exists { className =>
@@ -41,24 +53,13 @@ object SparkDependencies {
     }
 
   def sparkYarnFound(): Boolean =
-    try {
-      Thread.currentThread().getContextClassLoader.loadClass(sparkYarnClass)
-      true
-    }
-    catch {
-      case _: ClassNotFoundException =>
-        false
-    }
+    classFound(sparkYarnClass)
+
+  def yarnAmIpFilterFound(): Boolean =
+    classFound(yarnAmIpFilterClass)
 
   def sparkExecutorClassLoaderFound(): Boolean =
-    try {
-      Thread.currentThread().getContextClassLoader.loadClass(sparkExecutorClassLoaderClass)
-      true
-    }
-    catch {
-      case _: ClassNotFoundException =>
-        false
-    }
+    classFound(sparkExecutorClassLoaderClass)
 
   private def sparkModules(): Seq[String] = {
 
@@ -123,6 +124,22 @@ object SparkDependencies {
       s"spark-yarn_$sbv",
       org.apache.spark.SPARK_VERSION
     )
+
+  def yarnWebProxyDependency = {
+    val versionInfo = Thread.currentThread().getContextClassLoader
+      .loadClass("org.apache.hadoop.util.VersionInfo")
+    val hadoopVersion = versionInfo.getMethod("getVersion").invoke(null).toString
+    Dependency
+      .of(
+        "org.apache.hadoop",
+        "hadoop-yarn-server-web-proxy",
+        hadoopVersion
+      )
+      // Spark's hadoop-client-api/runtime already supplies the Hadoop client
+      // classes needed by AmIpFilter. Pulling this artifact transitively would
+      // add a second, unshaded Hadoop and Jetty stack to the REPL classpath.
+      .withTransitive(false)
+  }
 
   def sparkHiveDependency =
     Dependency.of(
