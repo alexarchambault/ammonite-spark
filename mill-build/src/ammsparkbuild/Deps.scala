@@ -28,7 +28,5 @@ object Deps {
       else "3.2.0"
     mvn"org.apache.spark::spark-sql:$ver"
   }
-  def sparkSql3  = mvn"org.apache.spark::spark-sql:3.0.0"
-  def sparkSql32 = mvn"org.apache.spark::spark-sql:3.2.0"
-  def utest      = mvn"com.lihaoyi::utest:0.9.5"
+  def utest = mvn"com.lihaoyi::utest:0.9.5"
 }

@@ -3,6 +3,8 @@ import mill.scalalib.*
 
 object `package` extends MillBuildRootModule {
   def mvnDeps = Seq(
-    mvn"com.github.lolgab::mill-mima_mill1:0.2.1"
+    mvn"com.github.lolgab::mill-mima_mill1:0.2.1",
+    // to read a single entry out of the Spark distrib archives, without unpacking them
+    mvn"org.apache.commons:commons-compress:1.28.0"
   )
 }
