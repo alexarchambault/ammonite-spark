@@ -8,20 +8,117 @@ on:
   pull_request:
 
 jobs:
-  test:
+  # Lists the cross values of each test module, so that the *-tests jobs below can
+  # run one job per value rather than all of them at once via "_" / "__".
+  # Values are listed in a readable form ("2.4.4-2.12.11-8" rather than the Mill
+  # segment "2_4_4__2_12_11__8"), so that the matrix jobs have readable names -
+  # the jobs below convert them back before passing them to Mill.
+  list-tests:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        MASTER: ["local", "standalone", "yarn", "local-distrib", "yarn-distrib"]
+    outputs:
+      local-tests: ${{ steps.list.outputs.local-tests }}
+      standalone-tests: ${{ steps.list.outputs.standalone-tests }}
+      yarn-tests: ${{ steps.list.outputs.yarn-tests }}
+      local-spark-distrib-tests: ${{ steps.list.outputs.local-spark-distrib-tests }}
+      yarn-spark-distrib-tests: ${{ steps.list.outputs.yarn-spark-distrib-tests }}
     steps:
     - uses: actions/checkout@v7
     - uses: coursier/cache-action@v8
       with:
         disableFallback: true
-    - run: .github/scripts/test.sh
-      env:
-        MASTER: ${{ matrix.MASTER }}
+    - id: list
+      run: |
+        for module in local-tests standalone-tests yarn-tests local-spark-distrib-tests yarn-spark-distrib-tests; do
+          values="$(./mill resolve "$module[_]" | sed "s/^$module\.//; s/__/-/g; s/_/./g" | jq -R -s -c 'split("\n") | map(select(length > 0))')"
+          echo "$module: $values"
+          echo "$module=$values" >> "$GITHUB_OUTPUT"
+        done
+
+  local-tests:
+    needs: list-tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cross: ${{ fromJson(needs.list-tests.outputs.local-tests) }}
+    steps:
+    - uses: actions/checkout@v7
+    - uses: coursier/cache-action@v8
+      with:
+        disableFallback: true
+    - run: |
+        CROSS="$(echo '${{ matrix.cross }}' | sed 's/\./_/g; s/-/__/g')"
+        ./mill "local-tests.$CROSS.testForked"
+
+  standalone-tests:
+    needs: list-tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cross: ${{ fromJson(needs.list-tests.outputs.standalone-tests) }}
+    steps:
+    - uses: actions/checkout@v7
+    - uses: coursier/cache-action@v8
+      with:
+        disableFallback: true
+    - run: |
+        CROSS="$(echo '${{ matrix.cross }}' | sed 's/\./_/g; s/-/__/g')"
+        ./mill "standalone-tests.$CROSS.testForked"
+
+  yarn-tests:
+    needs: list-tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cross: ${{ fromJson(needs.list-tests.outputs.yarn-tests) }}
+    steps:
+    - uses: actions/checkout@v7
+    - uses: coursier/cache-action@v8
+      with:
+        disableFallback: true
+    # the cross value is like "2.4.4-2.12.11-8" (Spark / Scala / JVM versions)
+    - run: |
+        CROSS="$(echo '${{ matrix.cross }}' | sed 's/\./_/g; s/-/__/g')"
+        SPARK_VERSION="$(echo '${{ matrix.cross }}' | cut -d - -f 1)"
+        SCALA_VERSION="$(echo '${{ matrix.cross }}' | cut -d - -f 2)"
+        ./mill-in-docker-with-yarn-cluster.sh \
+          --prefetch "$SPARK_VERSION" \
+          --scala-version "$SCALA_VERSION" \
+          "yarn-tests.$CROSS.testForked"
+
+  local-distrib-tests:
+    needs: list-tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cross: ${{ fromJson(needs.list-tests.outputs.local-spark-distrib-tests) }}
+    steps:
+    - uses: actions/checkout@v7
+    - uses: coursier/cache-action@v8
+      with:
+        disableFallback: true
+    - run: |
+        CROSS="$(echo '${{ matrix.cross }}' | sed 's/\./_/g; s/-/__/g')"
+        ./mill "local-spark-distrib-tests.$CROSS.testForked"
+
+  yarn-distrib-tests:
+    needs: list-tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        cross: ${{ fromJson(needs.list-tests.outputs.yarn-spark-distrib-tests) }}
+    steps:
+    - uses: actions/checkout@v7
+    - uses: coursier/cache-action@v8
+      with:
+        disableFallback: true
+    - run: |
+        CROSS="$(echo '${{ matrix.cross }}' | sed 's/\./_/g; s/-/__/g')"
+        ./mill-in-docker-with-yarn-cluster.sh "yarn-spark-distrib-tests.$CROSS.testForked"
 
   checks:
     timeout-minutes: 15
