@@ -4,7 +4,6 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 
 import java.nio.charset.StandardCharsets
-import java.util.zip.ZipFile
 
 import scala.util.Using
 
@@ -52,34 +51,6 @@ object SparkHome {
       os.copy.into(jar, sparkDir / "jars")
 
     sparkDir
-  }
-
-  def scalaVersionFromSparkDistrib(sparkDir: os.Path): String = {
-    val libraryJars = os.list(sparkDir / "jars")
-      .filter(_.last.startsWith("scala-library"))
-      .filter(_.last.endsWith(".jar"))
-      .filter(os.isFile)
-    assert(
-      libraryJars.nonEmpty,
-      s"No scala-library*.jar found under ${sparkDir / "jars"}"
-    )
-    assert(
-      libraryJars.length == 1,
-      s"Found too many scala-library*.jar files under ${sparkDir / "jars"}: ${libraryJars.map(_.subRelativeTo(sparkDir / "jars"))}"
-    )
-    val libraryJar = libraryJars.head
-    Using.resource(new ZipFile(libraryJar.toIO)) { zf =>
-      val ent = zf.getEntry("library.properties")
-      assert(ent != null, s"library.properties not found in $libraryJar")
-      val content = new String(zf.getInputStream(ent).readAllBytes(), StandardCharsets.UTF_8)
-      content
-        .linesIterator
-        .find(_.startsWith("version.number="))
-        .map(_.stripPrefix("version.number=").trim())
-        .getOrElse {
-          sys.error(s"No version.number=... line found in library.properties in $libraryJar")
-        }
-    }
   }
 
   def scalaVersionFromSparkDistribVersion(sparkVersion: String): String = {
