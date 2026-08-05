@@ -11,8 +11,8 @@ import scala.util.Using
 object SparkHome {
 
   private def distribUrl(sparkVersion: String): String =
-    "https://github.com/scala-cli/lightweight-spark-distrib/releases/download/v0.0.4/" +
-      s"spark-$sparkVersion-bin-hadoop2.7-scala2.12.tgz"
+    "https://github.com/scala-cli/lightweight-spark-distrib/releases/download/v0.1.0/" +
+      s"spark-$sparkVersion-bin-hadoop2.7.tgz.tgz"
 
   private def download(url: String): os.Path = {
     val cache    = coursier.cache.FileCache()
