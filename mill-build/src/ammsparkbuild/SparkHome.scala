@@ -1,30 +1,37 @@
 package ammsparkbuild
 
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
+import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
+
 import java.nio.charset.StandardCharsets
 import java.util.zip.ZipFile
 
 import scala.util.Using
 
 object SparkHome {
+
+  private def distribUrl(sparkVersion: String): String =
+    "https://github.com/scala-cli/lightweight-spark-distrib/releases/download/v0.0.4/" +
+      s"spark-$sparkVersion-bin-hadoop2.7-scala2.12.tgz"
+
+  private def download(url: String): os.Path = {
+    val cache    = coursier.cache.FileCache()
+    val artifact = coursier.util.Artifact(url)
+    cache.file(artifact).run.unsafeRun(true)(using cache.ec) match {
+      case Left(err)   => throw new Exception(s"Error downloading $url: ${err.describe}", err)
+      case Right(file) => os.Path(file)
+    }
+  }
+
   // Build a local Spark distribution and return its SPARK_HOME.
   // Download a lightweight Spark distrib, run its jar-fetching script, then
   // drop Spark's REPL jar in favour of our stubs.
   def createDistributionUnder(
     workingDir: os.Path,
     sparkVersion: String,
-    extraJars: Seq[os.Path],
-    scalaVersion: String = ""
+    extraJars: Seq[os.Path]
   ): os.Path = {
-    val url =
-      "https://github.com/scala-cli/lightweight-spark-distrib/releases/download/v0.0.4/" +
-        s"spark-$sparkVersion-bin-hadoop2.7-scala2.12.tgz"
-
-    val cache    = coursier.cache.FileCache()
-    val artifact = coursier.util.Artifact(url)
-    val archive = cache.file(artifact).run.unsafeRun(true)(using cache.ec) match {
-      case Left(err)   => throw new Exception(s"Error downloading $url: ${err.describe}", err)
-      case Right(file) => os.Path(file)
-    }
+    val archive = download(distribUrl(sparkVersion))
 
     os.proc("tar", "-zxf", archive)
       .call(cwd = workingDir, stdin = os.Inherit, stdout = os.Inherit)
@@ -44,41 +51,75 @@ object SparkHome {
     for (jar <- extraJars)
       os.copy.into(jar, sparkDir / "jars")
 
-    if (scalaVersion.nonEmpty) {
-      val scalaVersionFromLibraryJar = {
-        val libraryJars = os.list(sparkDir / "jars")
-          .filter(_.last.startsWith("scala-library"))
-          .filter(_.last.endsWith(".jar"))
-          .filter(os.isFile)
-        assert(
-          libraryJars.nonEmpty,
-          s"No scala-library*.jar found under ${sparkDir / "jars"}"
-        )
-        assert(
-          libraryJars.length == 1,
-          s"Found too many scala-library*.jar files under ${sparkDir / "jars"}: ${libraryJars.map(_.subRelativeTo(sparkDir / "jars"))}"
-        )
-        val libraryJar = libraryJars.head
-        val foundVersion =
-          Using.resource(new ZipFile(libraryJar.toIO)) { zf =>
-            val ent = zf.getEntry("library.properties")
-            assert(ent != null, s"library.properties not found in $libraryJar")
-            val content = new String(zf.getInputStream(ent).readAllBytes(), StandardCharsets.UTF_8)
-            content
-              .linesIterator
-              .find(_.startsWith("version.number="))
-              .map(_.stripPrefix("version.number=").trim())
-              .getOrElse {
-                sys.error(s"No version.number=... line found in library.properties in $libraryJar")
-              }
-          }
-        assert(
-          scalaVersion == foundVersion,
-          s"Found Scala version $foundVersion in $libraryJar, expected $scalaVersion"
-        )
+    sparkDir
+  }
+
+  def scalaVersionFromSparkDistrib(sparkDir: os.Path): String = {
+    val libraryJars = os.list(sparkDir / "jars")
+      .filter(_.last.startsWith("scala-library"))
+      .filter(_.last.endsWith(".jar"))
+      .filter(os.isFile)
+    assert(
+      libraryJars.nonEmpty,
+      s"No scala-library*.jar found under ${sparkDir / "jars"}"
+    )
+    assert(
+      libraryJars.length == 1,
+      s"Found too many scala-library*.jar files under ${sparkDir / "jars"}: ${libraryJars.map(_.subRelativeTo(sparkDir / "jars"))}"
+    )
+    val libraryJar = libraryJars.head
+    Using.resource(new ZipFile(libraryJar.toIO)) { zf =>
+      val ent = zf.getEntry("library.properties")
+      assert(ent != null, s"library.properties not found in $libraryJar")
+      val content = new String(zf.getInputStream(ent).readAllBytes(), StandardCharsets.UTF_8)
+      content
+        .linesIterator
+        .find(_.startsWith("version.number="))
+        .map(_.stripPrefix("version.number=").trim())
+        .getOrElse {
+          sys.error(s"No version.number=... line found in library.properties in $libraryJar")
+        }
+    }
+  }
+
+  def scalaVersionFromSparkDistribVersion(sparkVersion: String): String = {
+    // Fetch the Spark distrib like above, but don't unpack it: instead, look at the URL list that
+    // fetch-jars.sh reads, find the scala-library URL in it, and get the version from that URL
+    val archive     = download(distribUrl(sparkVersion))
+    val jarUrlsPath = "fetch-jars/jar-urls"
+    // This is called from the build definition itself, where reading files is only
+    // allowed from a watched value.
+    val jarUrls = mill.api.BuildCtx.withFilesystemCheckerDisabled {
+      Using.resource(
+        new TarArchiveInputStream(new GzipCompressorInputStream(os.read.inputStream(archive)))
+      ) { tis =>
+        Iterator.continually(tis.getNextEntry)
+          .takeWhile(_ != null)
+          .find(_.getName.endsWith("/" + jarUrlsPath))
+          .map(_ => new String(tis.readAllBytes(), StandardCharsets.UTF_8))
+          .getOrElse(sys.error(s"No */$jarUrlsPath entry found in $archive"))
       }
     }
 
-    sparkDir
+    // Each line looks like https://…/scala-library-2.12.8.jar->jars/scala-library-2.12.8.jar
+    val versions = jarUrls
+      .linesIterator
+      .map(_.split("->", 2).head.trim)
+      .filter(_.nonEmpty)
+      .map(_.split('/').last)
+      .filter(_.startsWith("scala-library-"))
+      .filter(_.endsWith(".jar"))
+      .map(_.stripPrefix("scala-library-").stripSuffix(".jar"))
+      .toVector
+      .distinct
+    assert(
+      versions.nonEmpty,
+      s"No scala-library URL found in $jarUrlsPath of $archive"
+    )
+    assert(
+      versions.length == 1,
+      s"Found too many scala-library URLs in $jarUrlsPath of $archive: $versions"
+    )
+    versions.head
   }
 }

@@ -6,6 +6,7 @@ package build
 import ammsparkbuild.*
 
 import com.github.lolgab.mill.mima.Mima
+import coursier.version.Version
 import mill.*
 import mill.api.*
 import mill.javalib.api.JvmWorkerUtil
@@ -153,21 +154,21 @@ trait WithDependencyResourceFile extends JavaModule {
 object `spark-stubs_24` extends ScalaModule with AmmSparkPublishModule {
   def scalaVersion = Versions.scala212
   def compileMvnDeps = super.compileMvnDeps() ++ Seq(
-    Deps.sparkSql(scalaVersion())
+    mvn"org.apache.spark::spark-sql:2.4.0"
   )
 }
 
 object `spark-stubs_30` extends ScalaModule with AmmSparkPublishModule {
   def scalaVersion = Versions.scala212
   def compileMvnDeps = super.compileMvnDeps() ++ Seq(
-    Deps.sparkSql3
+    mvn"org.apache.spark::spark-sql:3.0.0"
   )
 }
 
 object `spark-stubs_32` extends Cross[SparkStubs32](Versions.scala)
 trait SparkStubs32 extends CrossScalaModule with AmmSparkPublishModule {
   def compileMvnDeps = super.compileMvnDeps() ++ Seq(
-    Deps.sparkSql32
+    mvn"org.apache.spark::spark-sql:3.2.0"
   )
 }
 
@@ -267,27 +268,20 @@ def testRepo: T[PathRef] = {
   }
 }
 
-val sparkVersions = Seq("2.4.2")
-val scalaVersions = Map(
-  "2.4.2" -> "2.12.8"
-)
-val jvmIds = Map(
-  "2.4.2" -> "8"
-)
+object `spark-distribution` extends Cross[SparkDistributionModule](SparkVersions.sparkDistributions)
+trait SparkDistributionModule extends Cross.Module[SparkDistribution] {
 
-object `spark-distribution` extends Cross[SparkDistribution](sparkVersions)
-trait SparkDistribution extends Cross.Module[String] {
+  def sparkVersion = crossValue.sparkVersion
 
-  def sparkVersion = crossValue
-
-  def scalaVersion = scalaVersions(sparkVersion)
+  def scalaVersion = Task {
+    SparkHome.scalaVersionFromSparkDistrib(sparkHome().path)
+  }
 
   def sparkHome = Task {
     val sparkDir = SparkHome.createDistributionUnder(
       Task.dest,
       sparkVersion,
-      extraJars = Seq(`spark-stubs_24`.jar().path),
-      scalaVersion = scalaVersion
+      extraJars = Seq(`spark-stubs_24`.jar().path)
     )
 
     PathRef(sparkDir)
@@ -301,12 +295,12 @@ trait SparkDistribution extends Cross.Module[String] {
   }
 }
 
-object `standalone-cluster` extends Cross[StandaloneClusterModule](sparkVersions)
-trait StandaloneClusterModule extends StandaloneCluster with Cross.Module[String] {
+object `standalone-cluster` extends Cross[StandaloneClusterModule](SparkVersions.sparkDistributions)
+trait StandaloneClusterModule extends StandaloneCluster with Cross.Module[SparkDistribution] {
 
-  def sparkDistribution: SparkDistribution = `spark-distribution`(crossValue)
+  def sparkDistribution: SparkDistributionModule = `spark-distribution`(crossValue)
 
-  private def jvmId = jvmIds(crossValue)
+  private def jvmId = crossValue.jvmId
 
   def javaHome = Task {
     val fileCache = coursier.cache.FileCache()
@@ -379,17 +373,34 @@ trait AmmSparkTests extends TestModule {
 // enclosing module - on Java 11. The Mill build itself runs on Java 17, and Mill 1
 // can't fork tests on Java 8 (its test bootstrap relies on java.lang.ProcessHandle).
 trait SparkTestsJvm extends JavaModule {
-  def jvmId = "temurin:11"
-  def javacOptions = Task {
-    super.javacOptions() ++ Seq("--release", "8")
-  }
+
+  def sparkJvmId: String
+  private lazy val isJava8: Boolean =
+    sparkJvmId.split(":").last.split('.').head.startsWith("8")
+
+  // Mill 1 can't fork tests on Java 8 (its test bootstrap relies on java.lang.ProcessHandle),
+  // so we fall back to Java 11, but pass --release 8 to javac
+  def jvmId = s"temurin:${if (isJava8) "11" else sparkJvmId}"
+  def javacOptions =
+    if (isJava8)
+      Task {
+        super.javacOptions() ++ Seq("--release", "8")
+      }
+    else
+      super.javacOptions
 }
 
-object `test-definitions` extends Cross[TestDefinitions](
-      (Versions.scala ++ scalaVersions.values).distinct
-    )
-trait TestDefinitions extends CrossScalaModule with WithPropertyFile with WithDependencyResourceFile
-    with SparkTestsJvm {
+lazy val sparkDistributionScalaVersions = SparkVersions.sparkDistributions
+  .map(d => d -> SparkHome.scalaVersionFromSparkDistribVersion(d.sparkVersion))
+  .toMap
+
+lazy val allScalaVersions = (Versions.scala ++ sparkDistributionScalaVersions.values).distinct
+
+object `test-definitions` extends Cross[TestDefinitions](allScalaVersions)
+trait TestDefinitions     extends CrossScalaModule with WithPropertyFile
+    with WithDependencyResourceFile {
+  def jvmId                  = "temurin:11"
+  def javacOptions           = super.javacOptions() ++ Seq("--release", "8")
   def propertyFilePath       = os.sub / "ammonite/ammonite-spark.properties"
   def versionInProperties    = core().publishVersion()
   def dependencyResourcePath = os.sub / "ammonite/spark/amm-test-dependencies.txt"
@@ -402,22 +413,23 @@ trait TestDefinitions extends CrossScalaModule with WithPropertyFile with WithDe
   )
 }
 
-def scalaSparkVersions: Seq[(String, String)] = Versions.scala.flatMap { sv =>
-  val sparkVersions              = Seq("3.2.0")
-  val extraScala212SparkVersions = Seq("2.4.4", "3.0.0")
-
-  sparkVersions.map((sv, _)) ++ {
-    if (sv.startsWith("2.12.")) extraScala212SparkVersions.map((sv, _))
-    else Nil
-  }
+lazy val sparkMavenValues: Seq[SparkMaven] = {
+  val first213SparkVersion = Version("3.2.0")
+  for {
+    sv       <- Versions.scala
+    sparkVer <- SparkVersions.sparkMavenVersions
+    value = SparkMaven(sparkVer, sv, "8")
+    if Version(value.sparkVersion) >= first213SparkVersion || value.scalaVersion.startsWith("2.12.")
+  } yield value
 }
 
-object `local-tests` extends Cross[LocalTests](scalaSparkVersions)
-trait LocalTests     extends ScalaModule with Cross.Module2[String, String] with WithPropertyFile
+object `local-tests` extends Cross[LocalTests](sparkMavenValues)
+trait LocalTests     extends ScalaModule with Cross.Module[SparkMaven] with WithPropertyFile
     with WithDependencyResourceFile
     with SparkTestsJvm with AmmSparkTests {
 
-  private def sv = crossValue
+  private def sv = crossValue.scalaVersion
+  def sparkJvmId = crossValue.jvmId
 
   def scalaVersion = sv
 
@@ -437,29 +449,32 @@ trait LocalTests     extends ScalaModule with Cross.Module2[String, String] with
   )
 
   def forkEnv = super.forkEnv() ++ Seq(
-    "AMMSPARK_SPARK_VERSION" -> crossValue2
+    "AMMSPARK_SPARK_VERSION" -> crossValue.sparkVersion
   )
 }
 
-object `local-spark-distrib-tests` extends Cross[LocalSparkDistribTests](sparkVersions)
-trait LocalSparkDistribTests       extends ScalaModule with SparkTestsJvm with AmmSparkTests
-    with Cross.Module[String] {
+object `local-spark-distrib-tests`
+    extends Cross[LocalSparkDistribTests](SparkVersions.sparkDistributions)
+trait LocalSparkDistribTests extends ScalaModule with SparkTestsJvm with AmmSparkTests
+    with Cross.Module[SparkDistribution] {
   def sparkDistribution = `spark-distribution`(crossValue)
+  def sparkJvmId        = crossValue.jvmId
   def scalaVersion      = sparkDistribution.scalaVersion
   def moduleDeps = Seq(
-    `test-definitions`(sparkDistribution.scalaVersion)
+    `test-definitions`(sparkDistributionScalaVersions(crossValue))
   )
 
   def forkEnv = super.forkEnv() ++ sparkDistribution.testEnv()
 }
 
-object `standalone-tests` extends Cross[StandaloneTests](sparkVersions)
+object `standalone-tests` extends Cross[StandaloneTests](SparkVersions.sparkDistributions)
 trait StandaloneTests     extends ScalaModule with SparkTestsJvm with AmmSparkTests
-    with Cross.Module[String] {
+    with Cross.Module[SparkDistribution] {
   private val cluster = `standalone-cluster`(crossValue)
+  def sparkJvmId      = crossValue.jvmId
   def scalaVersion    = cluster.scalaVersion
   def moduleDeps = Seq(
-    `test-definitions`(cluster.scalaVersion)
+    `test-definitions`(sparkDistributionScalaVersions(crossValue))
   )
   def forkEnv = Task {
     super.forkEnv() ++ cluster.testEnv()
@@ -467,36 +482,40 @@ trait StandaloneTests     extends ScalaModule with SparkTestsJvm with AmmSparkTe
 }
 
 object `yarn-tests` extends Cross[YarnTests](
-      scalaSparkVersions
+      sparkMavenValues
         // Temporarily disabled, until we can (either or both)
         // - enable the hadoop-2.7 profile (and excluding the remaining hadoop 3 dependencies?) when fetching Spark dependencies
         // - update the docker-based hadoop setup in the tests to hadoop 3
-        .filter(!_._2.startsWith("3.2."))
+        .filter(!_.sparkVersion.startsWith("3.2."))
     )
-trait YarnTests extends ScalaModule with Cross.Module2[String, String] with SparkTestsJvm
+trait YarnTests extends ScalaModule with Cross.Module[SparkMaven] with SparkTestsJvm
     with AmmSparkTests
     with RunClasspathAsJars {
 
-  private def sv = crossValue
+  private def sv = crossValue.scalaVersion
 
   def scalaVersion = sv
+
+  def sparkJvmId = crossValue.jvmId
 
   def moduleDeps = Seq(
     `test-definitions`(sv)
   )
 
   def forkEnv = super.forkEnv() ++ Seq(
-    "AMMSPARK_SPARK_VERSION" -> crossValue2
+    "AMMSPARK_SPARK_VERSION" -> crossValue.sparkVersion
   )
 }
 
-object `yarn-spark-distrib-tests` extends Cross[YarnSparkDistribTests](sparkVersions)
-trait YarnSparkDistribTests       extends ScalaModule with SparkTestsJvm with AmmSparkTests
-    with RunClasspathAsJars with Cross.Module[String] {
+object `yarn-spark-distrib-tests`
+    extends Cross[YarnSparkDistribTests](SparkVersions.sparkDistributions)
+trait YarnSparkDistribTests extends ScalaModule with SparkTestsJvm with AmmSparkTests
+    with RunClasspathAsJars with Cross.Module[SparkDistribution] {
   def sparkDistribution = `spark-distribution`(crossValue)
   def scalaVersion      = sparkDistribution.scalaVersion
+  def sparkJvmId        = crossValue.jvmId
   def moduleDeps = Seq(
-    `test-definitions`(sparkDistribution.scalaVersion)
+    `test-definitions`(sparkDistributionScalaVersions(crossValue))
   )
   def forkEnv = super.forkEnv() ++ sparkDistribution.testEnv()
 }

@@ -3,10 +3,44 @@ set -eu
 
 # when the tests are running, open the YARN UI at http://localhost:8088
 
-PREFETCH=0
-if [ "$1" == "--prefetch" ]; then
-  PREFETCH=1
-  shift
+# --prefetch SPARK_VERSION pre-fetches the Spark dependencies of that version in
+# the container (before the tests pull them through coursier), so that download
+# failures are easier to tell apart from actual test failures.
+# --scala-version SCALA_VERSION tells which Scala version those dependencies
+# should be fetched for (only its binary version matters), and is required
+# alongside --prefetch.
+PREFETCH_SPARK_VERSION=""
+SCALA_VERSION=""
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --prefetch)
+      shift
+      if [ "$#" = 0 ]; then
+        echo "--prefetch expects a Spark version" 1>&2
+        exit 1
+      fi
+      PREFETCH_SPARK_VERSION="$1"
+      shift
+      ;;
+    --scala-version)
+      shift
+      if [ "$#" = 0 ]; then
+        echo "--scala-version expects a Scala version" 1>&2
+        exit 1
+      fi
+      SCALA_VERSION="$1"
+      shift
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+if [ -n "$PREFETCH_SPARK_VERSION" ] && [ -z "$SCALA_VERSION" ]; then
+  echo "--prefetch requires --scala-version" 1>&2
+  exit 1
 fi
 
 INTERACTIVE=0
@@ -148,26 +182,22 @@ echo cat "$CACHE/hadoop-conf/yarn-site.xml"
 cat "$CACHE/hadoop-conf/yarn-site.xml"
 echo
 
-SCALA_VERSION="2.12.8"
-SBV="2.12"
-
 cat > "$CACHE/run.sh" << EOF
 #!/usr/bin/env bash
 set -e
 
 EOF
 
-if [ "$PREFETCH" == 1 ]; then
+if [ -n "$PREFETCH_SPARK_VERSION" ]; then
+  SBV="$(echo "$SCALA_VERSION" | cut -d . -f 1-2)"
   cat >> "$CACHE/run.sh" << EOF
-for SPARK_VERSION in "2.4.4" "3.0.0"; do
-  DEPS=()
-  DEPS+=("org.apache.spark:spark-sql_$SBV:\$SPARK_VERSION")
-  DEPS+=("org.apache.spark:spark-yarn_$SBV:\$SPARK_VERSION")
+DEPS=()
+DEPS+=("org.apache.spark:spark-sql_$SBV:$PREFETCH_SPARK_VERSION")
+DEPS+=("org.apache.spark:spark-yarn_$SBV:$PREFETCH_SPARK_VERSION")
 
-  for d in "\${DEPS[@]}"; do
-    echo "Pre-fetching \$d"
-    coursier fetch "\$d" $(if [ "$INTERACTIVE" = 1 ]; then echo --progress; else echo "</dev/null"; fi) >/dev/null
-  done
+for d in "\${DEPS[@]}"; do
+  echo "Pre-fetching \$d"
+  coursier fetch "\$d" $(if [ "$INTERACTIVE" = 1 ]; then echo --progress; else echo "</dev/null"; fi) >/dev/null
 done
 
 EOF
