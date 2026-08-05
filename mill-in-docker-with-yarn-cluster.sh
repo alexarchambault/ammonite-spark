@@ -9,8 +9,11 @@ set -eu
 # --scala-version SCALA_VERSION tells which Scala version those dependencies
 # should be fetched for (only its binary version matters), and is required
 # alongside --prefetch.
+# --hadoop-version MAJOR selects the Hadoop major version of the YARN cluster.
+# Supported values are 2 (the default) and 3.
 PREFETCH_SPARK_VERSION=""
 SCALA_VERSION=""
+HADOOP_MAJOR_VERSION=2
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -32,11 +35,34 @@ while [ "$#" -gt 0 ]; do
       SCALA_VERSION="$1"
       shift
       ;;
+    --hadoop-version)
+      shift
+      if [ "$#" = 0 ]; then
+        echo "--hadoop-version expects 2 or 3" 1>&2
+        exit 1
+      fi
+      HADOOP_MAJOR_VERSION="$1"
+      shift
+      ;;
     *)
       break
       ;;
   esac
 done
+
+case "$HADOOP_MAJOR_VERSION" in
+  2)
+    YARN_CLUSTER_IMAGE="docker.io/alexarchambault/yarn-cluster"
+    ;;
+  3)
+    HADOOP_3_VERSION=3.3.6
+    YARN_CLUSTER_IMAGE="ammonite-spark/yarn-cluster:hadoop-$HADOOP_3_VERSION"
+    ;;
+  *)
+    echo "--hadoop-version expects 2 or 3, got '$HADOOP_MAJOR_VERSION'" 1>&2
+    exit 1
+    ;;
+esac
 
 if [ -n "$PREFETCH_SPARK_VERSION" ] && [ -z "$SCALA_VERSION" ]; then
   echo "--prefetch requires --scala-version" 1>&2
@@ -95,8 +121,36 @@ trap cleanup EXIT INT TERM
 
 
 CACHE="${YARN_CACHE:-"$(pwd)/target/yarn"}"
+HADOOP_CONF_CACHE="$CACHE/hadoop-conf-$HADOOP_MAJOR_VERSION"
 
 mkdir -p "$CACHE"
+
+if [ "$HADOOP_MAJOR_VERSION" = 3 ] && ! docker image inspect "$YARN_CLUSTER_IMAGE" >/dev/null 2>&1; then
+  echo "Building Hadoop $HADOOP_3_VERSION YARN cluster image" 1>&2
+  docker build --load -t "$YARN_CLUSTER_IMAGE" \
+    --build-arg "HADOOP_VERSION=$HADOOP_3_VERSION" \
+    - <<'EOF'
+FROM docker.io/alexarchambault/yarn-cluster
+ARG HADOOP_VERSION
+ENV HADOOP_HOME=/usr/local/hadoop \
+    HDFS_NAMENODE_USER=root \
+    HDFS_DATANODE_USER=root \
+    HDFS_SECONDARYNAMENODE_USER=root \
+    YARN_RESOURCEMANAGER_USER=root \
+    YARN_NODEMANAGER_USER=root
+
+RUN cp -a /usr/local/hadoop/etc/hadoop /tmp/hadoop-conf && \
+    curl -fsSL "https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz" \
+      | tar -xz -C /usr/local && \
+    rm /usr/local/hadoop && \
+    ln -s "/usr/local/hadoop-${HADOOP_VERSION}" /usr/local/hadoop && \
+    cp /tmp/hadoop-conf/*.xml /usr/local/hadoop/etc/hadoop/ && \
+    printf '\nexport JAVA_HOME=/usr/java/default\n' >> /usr/local/hadoop/etc/hadoop/hadoop-env.sh && \
+    chmod +x /usr/local/hadoop/etc/hadoop/*-env.sh && \
+    rm -rf /tmp/hadoop-root/dfs/name && \
+    /usr/local/hadoop/bin/hdfs namenode -format -force
+EOF
+fi
 
 if [ ! -x "$CACHE/coursier" ]; then
   curl -fL https://github.com/coursier/coursier/releases/download/v2.1.25-M25/cs-x86_64-pc-linux.gz | gzip -d > "$CACHE/coursier"
@@ -112,8 +166,8 @@ if [[ -z "$(docker ps -qf name=namenode)" ]]; then
   # below (point it at the actual container IP rather than the "namenode" host)
   CONF_OVERRIDES_DIR="$(pwd)/target/conf-overrides"
   mkdir -p "$CONF_OVERRIDES_DIR"
-  docker run --rm --entrypoint cat alexarchambault/yarn-cluster /usr/local/hadoop/etc/hadoop/core-site.xml > "$CONF_OVERRIDES_DIR/core-site.xml"
-  docker run --rm --entrypoint cat alexarchambault/yarn-cluster /usr/local/hadoop/etc/hadoop/yarn-site.xml > "$CONF_OVERRIDES_DIR/yarn-site.xml"
+  docker run --rm --entrypoint cat "$YARN_CLUSTER_IMAGE" /usr/local/hadoop/etc/hadoop/core-site.xml > "$CONF_OVERRIDES_DIR/core-site.xml"
+  docker run --rm --entrypoint cat "$YARN_CLUSTER_IMAGE" /usr/local/hadoop/etc/hadoop/yarn-site.xml > "$CONF_OVERRIDES_DIR/yarn-site.xml"
 
   # start the container with a dummy command that never ends, mounting the
   # extracted core-site.xml so that we can edit it before bootstrapping
@@ -123,7 +177,7 @@ if [[ -z "$(docker ps -qf name=namenode)" ]]; then
     --name "$NAMENODE" \
     -h "$NAMENODE" \
     -v "$CONF_OVERRIDES_DIR:/conf-overrides" \
-    docker.io/alexarchambault/yarn-cluster tail -f /dev/null
+    "$YARN_CLUSTER_IMAGE" tail -f /dev/null
 
   # point the conf at the actual container IP
   NAMENODE_IP="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$NAMENODE")"
@@ -160,6 +214,28 @@ if [ "$RETRY" = 0 ]; then
   exit 1
 fi
 
+echo "Querying Hadoop version from the YARN ResourceManager" 1>&2
+RETRY=20
+HADOOP_CLUSTER_VERSION=""
+while [ "$RETRY" -gt 0 ] && [ -z "$HADOOP_CLUSTER_VERSION" ]; do
+  CLUSTER_INFO="$(curl -fsS http://localhost:8088/ws/v1/cluster/info || true)"
+  HADOOP_CLUSTER_VERSION="$(
+    echo "$CLUSTER_INFO" | sed -n 's/.*"hadoopVersion"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
+  )"
+  if [ -z "$HADOOP_CLUSTER_VERSION" ]; then
+    sleep 2
+    RETRY=$(( RETRY - 1 ))
+  fi
+done
+
+if [ -z "$HADOOP_CLUSTER_VERSION" ]; then
+  echo "Could not query the Hadoop version from the YARN ResourceManager" 1>&2
+  exit 1
+fi
+echo "YARN ResourceManager cluster info:"
+echo "$CLUSTER_INFO"
+echo "Hadoop cluster version: $HADOOP_CLUSTER_VERSION"
+
 
 export INPUT_TXT_URL="hdfs:///user/root/input.txt"
 
@@ -168,18 +244,18 @@ if ! docker exec -t "$NAMENODE" /usr/local/hadoop/bin/hdfs dfs -ls hdfs:///user/
   (docker exec -i "$NAMENODE" /usr/local/hadoop/bin/hdfs dfs -put - "$INPUT_TXT_URL") < modules/test-definitions/resources/input.txt
 fi
 
-if [ ! -d "$CACHE/hadoop-conf" ]; then
+if [ ! -d "$HADOOP_CONF_CACHE" ]; then
   echo "Getting Hadoop conf dir"
-  mkdir -p "$CACHE/hadoop-conf"
-  docker exec "$NAMENODE" tar -C /usr/local/hadoop/etc/hadoop -cf - . | tar -C "$CACHE/hadoop-conf" -xf -
+  mkdir -p "$HADOOP_CONF_CACHE"
+  docker exec "$NAMENODE" tar -C /usr/local/hadoop/etc/hadoop -cf - . | tar -C "$HADOOP_CONF_CACHE" -xf -
 fi
 
-echo cat "$CACHE/hadoop-conf/core-site.xml"
-cat "$CACHE/hadoop-conf/core-site.xml"
+echo cat "$HADOOP_CONF_CACHE/core-site.xml"
+cat "$HADOOP_CONF_CACHE/core-site.xml"
 echo
 
-echo cat "$CACHE/hadoop-conf/yarn-site.xml"
-cat "$CACHE/hadoop-conf/yarn-site.xml"
+echo cat "$HADOOP_CONF_CACHE/yarn-site.xml"
+cat "$HADOOP_CONF_CACHE/yarn-site.xml"
 echo
 
 cat > "$CACHE/run.sh" << EOF
@@ -225,6 +301,7 @@ echo "SPARK_DRIVER_HOST=\$SPARK_DRIVER_HOST"
 export AMMONITE_SPARK_FORCED_VERSION="0.1-SNAPSHOT"
 export AMMONITE_SPARK_FORCED_COMMIT_HASH="XXXX"
 
+echo "Hadoop cluster version (from ResourceManager): \$HADOOP_CLUSTER_VERSION"
 echo exec ./mill -i "\$@"
 exec ./mill -i "\$@"
 EOF
@@ -240,9 +317,10 @@ docker run -t $(if [ "$INTERACTIVE" = 1 ]; then echo -i; fi) --rm \
   -v "$CACHE/cache:/root/.cache" \
   -v "$CACHE/mill-home:/root/.mill" \
   -v "$CACHE/ivy2-home:/root/.ivy2" \
-  -v "$CACHE/hadoop-conf:/etc/hadoop/conf" \
+  -v "$HADOOP_CONF_CACHE:/etc/hadoop/conf" \
   -v "$(pwd):/workspace" \
   $(if [ ! -z ${SPARK_LOG_CONSOLE+x} ]; then echo "" -e SPARK_LOG_CONSOLE; fi) \
+  -e HADOOP_CLUSTER_VERSION \
   -e INPUT_TXT_URL \
   -w /workspace \
   ubuntu:26.04 \
