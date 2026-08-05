@@ -20,6 +20,7 @@ class TestRepl {
   var allOutput                         = ""
   def predef: (String, Option[os.Path]) = ("", None)
   def codeWrapper: CodeWrapper          = CodeClassWrapper
+  def initialClassPath: Seq[os.Path]    = Nil
 
   val tempDir = os.Path(
     java.nio.file.Files.createTempDirectory("ammonite-tester")
@@ -47,7 +48,14 @@ class TestRepl {
   )
   val storage = new Storage.Folder(tempDir)
 
-  private val initialLoader    = Thread.currentThread().getContextClassLoader
+  private val initialLoader =
+    if (initialClassPath.isEmpty)
+      Thread.currentThread().getContextClassLoader
+    else
+      new java.net.URLClassLoader(
+        initialClassPath.map(_.toNIO.toUri.toURL).toArray,
+        Thread.currentThread().getContextClassLoader
+      )
   val frames: Ref[List[Frame]] = Ref(List(Frame.createInitial(initialLoader)))
   val sess0                    = new SessionApiImpl(frames)
 

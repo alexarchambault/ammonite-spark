@@ -6,6 +6,25 @@ object Init {
 
   private def q = "\""
 
+  def sparkHomeJars: Seq[os.Path] = {
+    import java.nio.file.{Files, Paths}
+    import scala.collection.JavaConverters._
+
+    Files.list(Paths.get(sys.env("SPARK_HOME"), "jars"))
+      .iterator()
+      .asScala
+      .toVector
+      .filter { f =>
+        val name = f.getFileName.toString
+        !name.startsWith("scala-compiler") &&
+        !name.startsWith("scala-reflect") &&
+        !name.startsWith("scala-library") &&
+        !name.startsWith("spark-repl_")
+      }
+      .sortBy(_.getFileName.toString)
+      .map(os.Path(_))
+  }
+
   // Extra Spark config injected into every session. SPARK_DRIVER_HOST is set by
   // the dockerized YARN test runner so that the ApplicationMaster can reach the
   // driver back (see mill-in-docker-with-yarn-cluster.sh). Empty for the local

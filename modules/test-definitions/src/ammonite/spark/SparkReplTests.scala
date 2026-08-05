@@ -18,9 +18,13 @@ class SparkReplTests(
   Init.setupLog4j()
 
   val check: TestRepl = new TestRepl {
+    override def initialClassPath =
+      if (sparkHomeBased) Init.sparkHomeJars
+      else Nil
+
     override def predef =
       if (initFromPredef)
-        (Init.scriptInit(master, sparkVersion, conf), None)
+        (Init.scriptInit(master, sparkVersion, conf, loadSparkSql = !sparkHomeBased), None)
       else
         ("", None)
   }
@@ -29,11 +33,6 @@ class SparkReplTests(
     false
   def initFromPredef: Boolean =
     false
-
-  Predef.assert(
-    !sparkHomeBased || !initFromPredef,
-    "Can't have both sparkHomeBased and initFromPredef"
-  )
 
   def init =
     if (initFromPredef)

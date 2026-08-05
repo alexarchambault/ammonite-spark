@@ -6,5 +6,8 @@ object StandaloneScriptTests extends SparkReplTests(
       "spark.executor.instances" -> "1",
       "spark.executor.memory"    -> "2g"
     ) {
+  override def sparkHomeBased =
+    true
+
   override def initFromPredef = true
 }
