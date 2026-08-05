@@ -298,6 +298,7 @@ trait SparkDistributionModule extends Cross.Module[SparkDistribution] {
     val sparkDir = SparkHome.createDistributionUnder(
       Task.dest,
       sparkVersion,
+      crossValue.hadoopVersion,
       extraJars = Seq(stubsModule.jar().path)
     )
 
@@ -408,7 +409,7 @@ trait SparkTestsJvm extends JavaModule {
 }
 
 lazy val sparkDistributionScalaVersions = SparkVersions.sparkDistributions
-  .map(d => d -> SparkHome.scalaVersionFromSparkDistribVersion(d.sparkVersion))
+  .map(d => d -> SparkHome.scalaVersionFromSparkDistribVersion(d.sparkVersion, d.hadoopVersion))
   .toMap
 
 lazy val allScalaVersions = (Versions.scala ++ sparkDistributionScalaVersions.values).distinct

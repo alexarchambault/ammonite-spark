@@ -9,9 +9,9 @@ import scala.util.Using
 
 object SparkHome {
 
-  private def distribUrl(sparkVersion: String): String =
+  private def distribUrl(sparkVersion: String, hadoopVersion: String): String =
     "https://github.com/scala-cli/lightweight-spark-distrib/releases/download/v0.1.0/" +
-      s"spark-$sparkVersion-bin-hadoop2.7.tgz.tgz"
+      s"spark-$sparkVersion-bin-hadoop$hadoopVersion.tgz.tgz"
 
   private def download(url: String): os.Path = {
     val cache    = coursier.cache.FileCache()
@@ -28,9 +28,10 @@ object SparkHome {
   def createDistributionUnder(
     workingDir: os.Path,
     sparkVersion: String,
+    hadoopVersion: String,
     extraJars: Seq[os.Path]
   ): os.Path = {
-    val archive = download(distribUrl(sparkVersion))
+    val archive = download(distribUrl(sparkVersion, hadoopVersion))
 
     os.proc("tar", "-zxf", archive)
       .call(cwd = workingDir, stdin = os.Inherit, stdout = os.Inherit)
@@ -53,10 +54,13 @@ object SparkHome {
     sparkDir
   }
 
-  def scalaVersionFromSparkDistribVersion(sparkVersion: String): String = {
+  def scalaVersionFromSparkDistribVersion(
+    sparkVersion: String,
+    hadoopVersion: String
+  ): String = {
     // Fetch the Spark distrib like above, but don't unpack it: instead, look at the URL list that
     // fetch-jars.sh reads, find the scala-library URL in it, and get the version from that URL
-    val archive     = download(distribUrl(sparkVersion))
+    val archive     = download(distribUrl(sparkVersion, hadoopVersion))
     val jarUrlsPath = "fetch-jars/jar-urls"
     // This is called from the build definition itself, where reading files is only
     // allowed from a watched value.
