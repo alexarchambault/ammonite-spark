@@ -118,7 +118,10 @@ jobs:
         disableFallback: true
     - run: |
         CROSS="$(echo '${{ matrix.cross }}' | sed 's/\./_/g; s/-/__/g')"
-        ./mill-in-docker-with-yarn-cluster.sh "yarn-spark-distrib-tests.$CROSS.testForked"
+        HADOOP_VERSION="$(echo '${{ matrix.cross }}' | cut -d - -f 2 | cut -d . -f 1)"
+        ./mill-in-docker-with-yarn-cluster.sh \
+          --hadoop-version "$HADOOP_VERSION" \
+          "yarn-spark-distrib-tests.$CROSS.testForked"
 
   checks:
     timeout-minutes: 15
