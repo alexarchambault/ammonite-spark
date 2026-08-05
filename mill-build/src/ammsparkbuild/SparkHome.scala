@@ -120,6 +120,11 @@ object SparkHome {
       versions.length == 1,
       s"Found too many scala-library URLs in $jarUrlsPath of $archive: $versions"
     )
-    versions.head
+    val v = versions.head
+    assert(
+      !v.startsWith("2.11."),
+      s"Invalid Scala version for $sparkVersion: $v"
+    )
+    v
   }
 }
