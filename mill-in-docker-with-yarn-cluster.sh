@@ -214,6 +214,28 @@ if [ "$RETRY" = 0 ]; then
   exit 1
 fi
 
+echo "Querying Hadoop version from the YARN ResourceManager" 1>&2
+RETRY=20
+HADOOP_CLUSTER_VERSION=""
+while [ "$RETRY" -gt 0 ] && [ -z "$HADOOP_CLUSTER_VERSION" ]; do
+  CLUSTER_INFO="$(curl -fsS http://localhost:8088/ws/v1/cluster/info || true)"
+  HADOOP_CLUSTER_VERSION="$(
+    echo "$CLUSTER_INFO" | sed -n 's/.*"hadoopVersion"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
+  )"
+  if [ -z "$HADOOP_CLUSTER_VERSION" ]; then
+    sleep 2
+    RETRY=$(( RETRY - 1 ))
+  fi
+done
+
+if [ -z "$HADOOP_CLUSTER_VERSION" ]; then
+  echo "Could not query the Hadoop version from the YARN ResourceManager" 1>&2
+  exit 1
+fi
+echo "YARN ResourceManager cluster info:"
+echo "$CLUSTER_INFO"
+echo "Hadoop cluster version: $HADOOP_CLUSTER_VERSION"
+
 
 export INPUT_TXT_URL="hdfs:///user/root/input.txt"
 
@@ -279,6 +301,7 @@ echo "SPARK_DRIVER_HOST=\$SPARK_DRIVER_HOST"
 export AMMONITE_SPARK_FORCED_VERSION="0.1-SNAPSHOT"
 export AMMONITE_SPARK_FORCED_COMMIT_HASH="XXXX"
 
+echo "Hadoop cluster version (from ResourceManager): \$HADOOP_CLUSTER_VERSION"
 echo exec ./mill -i "\$@"
 exec ./mill -i "\$@"
 EOF
@@ -297,6 +320,7 @@ docker run -t $(if [ "$INTERACTIVE" = 1 ]; then echo -i; fi) --rm \
   -v "$HADOOP_CONF_CACHE:/etc/hadoop/conf" \
   -v "$(pwd):/workspace" \
   $(if [ ! -z ${SPARK_LOG_CONSOLE+x} ]; then echo "" -e SPARK_LOG_CONSOLE; fi) \
+  -e HADOOP_CLUSTER_VERSION \
   -e INPUT_TXT_URL \
   -w /workspace \
   ubuntu:26.04 \
