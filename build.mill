@@ -274,14 +274,31 @@ trait SparkDistributionModule extends Cross.Module[SparkDistribution] {
   def sparkVersion = crossValue.sparkVersion
 
   def scalaVersion = Task {
-    SparkHome.scalaVersionFromSparkDistrib(sparkHome().path)
+    sparkDistributionScalaVersions(crossValue)
   }
+
+  // Spark's own REPL jar is dropped from the distribution below, in favour of our stubs.
+  // Which ones to use depends on the Spark version, like SparkDependencies.stubsDependency
+  // does when ammonite-spark pulls the stubs at runtime - each of them is written against
+  // the xbean-asm version that its Spark versions ship.
+  private def stubsModule: ScalaModule =
+    if (Version(sparkVersion) < Version("3.0.0")) `spark-stubs_24`
+    else if (Version(sparkVersion) < Version("3.2.0")) `spark-stubs_30`
+    else {
+      val sbv = JvmWorkerUtil.scalaBinaryVersion(sparkDistributionScalaVersions(crossValue))
+      val sv = Versions.scala
+        .find(JvmWorkerUtil.scalaBinaryVersion(_) == sbv)
+        .getOrElse(
+          sys.error(s"No Scala $sbv version to build spark-stubs_32 for Spark $sparkVersion with")
+        )
+      `spark-stubs_32`(sv)
+    }
 
   def sparkHome = Task {
     val sparkDir = SparkHome.createDistributionUnder(
       Task.dest,
       sparkVersion,
-      extraJars = Seq(`spark-stubs_24`.jar().path)
+      extraJars = Seq(stubsModule.jar().path)
     )
 
     PathRef(sparkDir)

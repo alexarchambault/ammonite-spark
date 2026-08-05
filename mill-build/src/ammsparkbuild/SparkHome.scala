@@ -4,15 +4,14 @@ import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream
 
 import java.nio.charset.StandardCharsets
-import java.util.zip.ZipFile
 
 import scala.util.Using
 
 object SparkHome {
 
   private def distribUrl(sparkVersion: String): String =
-    "https://github.com/scala-cli/lightweight-spark-distrib/releases/download/v0.0.4/" +
-      s"spark-$sparkVersion-bin-hadoop2.7-scala2.12.tgz"
+    "https://github.com/scala-cli/lightweight-spark-distrib/releases/download/v0.1.0/" +
+      s"spark-$sparkVersion-bin-hadoop2.7.tgz.tgz"
 
   private def download(url: String): os.Path = {
     val cache    = coursier.cache.FileCache()
@@ -54,34 +53,6 @@ object SparkHome {
     sparkDir
   }
 
-  def scalaVersionFromSparkDistrib(sparkDir: os.Path): String = {
-    val libraryJars = os.list(sparkDir / "jars")
-      .filter(_.last.startsWith("scala-library"))
-      .filter(_.last.endsWith(".jar"))
-      .filter(os.isFile)
-    assert(
-      libraryJars.nonEmpty,
-      s"No scala-library*.jar found under ${sparkDir / "jars"}"
-    )
-    assert(
-      libraryJars.length == 1,
-      s"Found too many scala-library*.jar files under ${sparkDir / "jars"}: ${libraryJars.map(_.subRelativeTo(sparkDir / "jars"))}"
-    )
-    val libraryJar = libraryJars.head
-    Using.resource(new ZipFile(libraryJar.toIO)) { zf =>
-      val ent = zf.getEntry("library.properties")
-      assert(ent != null, s"library.properties not found in $libraryJar")
-      val content = new String(zf.getInputStream(ent).readAllBytes(), StandardCharsets.UTF_8)
-      content
-        .linesIterator
-        .find(_.startsWith("version.number="))
-        .map(_.stripPrefix("version.number=").trim())
-        .getOrElse {
-          sys.error(s"No version.number=... line found in library.properties in $libraryJar")
-        }
-    }
-  }
-
   def scalaVersionFromSparkDistribVersion(sparkVersion: String): String = {
     // Fetch the Spark distrib like above, but don't unpack it: instead, look at the URL list that
     // fetch-jars.sh reads, find the scala-library URL in it, and get the version from that URL
@@ -120,6 +91,11 @@ object SparkHome {
       versions.length == 1,
       s"Found too many scala-library URLs in $jarUrlsPath of $archive: $versions"
     )
-    versions.head
+    val v = versions.head
+    assert(
+      !v.startsWith("2.11."),
+      s"Invalid Scala version for $sparkVersion: $v"
+    )
+    v
   }
 }
