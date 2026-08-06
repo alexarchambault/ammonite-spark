@@ -414,6 +414,29 @@ lazy val sparkDistributionScalaVersions = SparkVersions.sparkDistributions
 
 lazy val allScalaVersions = (Versions.scala ++ sparkDistributionScalaVersions.values).distinct
 
+// Match the logging stack shipped by each Spark line. Spark 3.3 moved from
+// log4j 1.x to log4j 2 while still using slf4j 1.7, and Spark 3.4 moved to
+// slf4j 2. Keeping these aligned avoids duplicate org.apache.log4j classes.
+def testLoggingDeps(sparkVersion: String): Seq[Dep] =
+  if (Version(sparkVersion) < Version("3.3.0"))
+    Seq(Deps.slf4jLog4j12)
+  else {
+    val log4jVersion =
+      if (Version(sparkVersion) < Version("3.4.0")) "2.17.2"
+      else if (Version(sparkVersion) < Version("3.5.0")) "2.19.0"
+      else "2.20.0"
+    val slf4jVersion =
+      if (Version(sparkVersion) < Version("3.4.0")) "1.7.36"
+      else if (Version(sparkVersion) < Version("3.5.0")) "2.0.6"
+      else "2.0.7"
+    Seq(
+      Deps.log4jCore(log4jVersion),
+      Deps.slf4jApi(slf4jVersion),
+      if (Version(sparkVersion) < Version("3.4.0")) Deps.log4jSlf4jImpl(log4jVersion)
+      else Deps.log4jSlf4j2Impl(log4jVersion)
+    )
+  }
+
 object `test-definitions` extends Cross[TestDefinitions](allScalaVersions)
 trait TestDefinitions     extends CrossScalaModule with WithPropertyFile
     with WithDependencyResourceFile {
@@ -426,7 +449,6 @@ trait TestDefinitions     extends CrossScalaModule with WithPropertyFile
   def mvnDeps = super.mvnDeps() ++ Seq(
     Deps.ammoniteCompiler.exclude(("com.google.guava", "guava")),
     Deps.ammoniteRepl.exclude(("com.google.guava", "guava")),
-    Deps.slf4jLog4j12,
     Deps.utest
   )
 }
@@ -459,12 +481,14 @@ trait LocalTests     extends ScalaModule with Cross.Module[SparkMaven] with With
     `test-definitions`(sv)
   )
 
-  def mvnDeps = super.mvnDeps() ++ Seq(
-    Deps.ammoniteCompiler.exclude(("com.google.guava", "guava")),
-    Deps.ammoniteRepl.exclude(("com.google.guava", "guava")),
-    Deps.slf4jLog4j12,
-    Deps.utest
-  )
+  def mvnDeps =
+    super.mvnDeps() ++
+      Seq(
+        Deps.ammoniteCompiler.exclude(("com.google.guava", "guava")),
+        Deps.ammoniteRepl.exclude(("com.google.guava", "guava")),
+        Deps.utest
+      ) ++
+      testLoggingDeps(crossValue.sparkVersion)
 
   def forkEnv = super.forkEnv() ++ Seq(
     "AMMSPARK_SPARK_VERSION" -> crossValue.sparkVersion
@@ -482,6 +506,8 @@ trait LocalSparkDistribTests extends ScalaModule with SparkTestsJvm with AmmSpar
     `test-definitions`(sparkDistributionScalaVersions(crossValue))
   )
 
+  def mvnDeps = super.mvnDeps() ++ testLoggingDeps(crossValue.sparkVersion)
+
   def forkEnv = super.forkEnv() ++ sparkDistribution.testEnv()
 }
 
@@ -494,6 +520,7 @@ trait StandaloneTests     extends ScalaModule with SparkTestsJvm with AmmSparkTe
   def moduleDeps = Seq(
     `test-definitions`(sparkDistributionScalaVersions(crossValue))
   )
+  def mvnDeps = super.mvnDeps() ++ testLoggingDeps(crossValue.sparkVersion)
   def forkEnv = Task {
     super.forkEnv() ++ cluster.testEnv()
   }
@@ -514,6 +541,8 @@ trait YarnTests     extends ScalaModule with Cross.Module[SparkMaven] with Spark
     `test-definitions`(sv)
   )
 
+  def mvnDeps = super.mvnDeps() ++ testLoggingDeps(crossValue.sparkVersion)
+
   def forkEnv = super.forkEnv() ++ Seq(
     "AMMSPARK_SPARK_VERSION" -> crossValue.sparkVersion
   )
@@ -529,5 +558,6 @@ trait YarnSparkDistribTests extends ScalaModule with SparkTestsJvm with AmmSpark
   def moduleDeps = Seq(
     `test-definitions`(sparkDistributionScalaVersions(crossValue))
   )
+  def mvnDeps = super.mvnDeps() ++ testLoggingDeps(crossValue.sparkVersion)
   def forkEnv = super.forkEnv() ++ sparkDistribution.testEnv()
 }

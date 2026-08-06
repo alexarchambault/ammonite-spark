@@ -15,7 +15,7 @@ class SparkReplTests(
 
   // Most of the tests here were adapted from https://github.com/apache/spark/blob/ab18b02e66fd04bc8f1a4fb7b6a7f2773902a494/repl/src/test/scala/org/apache/spark/repl/SingletonReplSuite.scala
 
-  Init.setupLog4j()
+  Init.setupLog4j(sparkVersion)
 
   val check: TestRepl = new TestRepl {
     override def initialClassPath =
@@ -64,6 +64,22 @@ class SparkReplTests(
 
     // Beware that indentation of the session snippets is super sensitive.
     // All snippets should have the exact same indentation.
+
+    test("slf4j logs to spark.log") {
+      val marker = s"ammonite-spark-logging-test-${java.util.UUID.randomUUID()}"
+      org.slf4j.LoggerFactory.getLogger("ammonite.spark.logging-test").info(marker)
+
+      val deadline = System.nanoTime() + 5L * 1000L * 1000L * 1000L
+      def markerFound =
+        os.list(os.pwd)
+          .filter(_.last.startsWith("spark.log"))
+          .exists(path => os.read(path).contains(marker))
+
+      while (!markerFound && System.nanoTime() < deadline)
+        Thread.sleep(10L)
+
+      assert(markerFound)
+    }
 
     test("simple foreach with accumulator") {
       sparkSession(
