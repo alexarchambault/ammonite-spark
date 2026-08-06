@@ -6,7 +6,7 @@ import utest._
 class ProgressBarTestsDefinitions(sparkVersion: String, master: String, conf: (String, String)*)
     extends TestSuite {
 
-  Init.setupLog4j()
+  Init.setupLog4j(sparkVersion)
 
   val check = new TestRepl
 

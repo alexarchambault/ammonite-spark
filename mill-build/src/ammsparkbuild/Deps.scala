@@ -14,13 +14,17 @@ object Deps {
     mvn"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-core:${Versions.jsoniterScala}"
   def jsoniterScalaMacros =
     mvn"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros:${Versions.jsoniterScala}"
-  def log4j2 = mvn"org.apache.logging.log4j:log4j-core:2.17.2"
-  // Having an slf4j binding on the tests classpath ensures slf4j initializes at
-  // startup, rather than falling back to the NOP logger. Don't use the log4j 1.x
-  // binding here: its reload4j classes conflict with Spark 3.3+'s log4j-1.2-api.
-  def slf4jSimple    = mvn"org.slf4j:slf4j-simple:1.7.36"
-  def scalaKernelApi = mvn"sh.almond:::scala-kernel-api:${Versions.almond}"
-  def scalatags      = mvn"com.lihaoyi::scalatags:0.13.1"
+  def log4j2       = mvn"org.apache.logging.log4j:log4j-core:2.17.2"
+  def slf4jLog4j12 = mvn"org.slf4j:slf4j-log4j12:1.7.36"
+  def log4jCore(version: String) =
+    mvn"org.apache.logging.log4j:log4j-core:$version"
+  def log4jSlf4jImpl(version: String) =
+    mvn"org.apache.logging.log4j:log4j-slf4j-impl:$version"
+  def log4jSlf4j2Impl(version: String) =
+    mvn"org.apache.logging.log4j:log4j-slf4j2-impl:$version"
+  def slf4jApi(version: String) = mvn"org.slf4j:slf4j-api:$version"
+  def scalaKernelApi            = mvn"sh.almond:::scala-kernel-api:${Versions.almond}"
+  def scalatags                 = mvn"com.lihaoyi::scalatags:0.13.1"
   def sparkSql(sv: String) = {
     val ver =
       if (sv.startsWith("2.12.")) "2.4.0"
