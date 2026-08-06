@@ -140,7 +140,7 @@ ENV HADOOP_HOME=/usr/local/hadoop \
     YARN_NODEMANAGER_USER=root
 
 RUN cp -a /usr/local/hadoop/etc/hadoop /tmp/hadoop-conf && \
-    curl -fsSL "https://archive.apache.org/dist/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz" \
+    curl -fsSL "https://dlcdn.apache.org/hadoop/common/hadoop-${HADOOP_VERSION}/hadoop-${HADOOP_VERSION}.tar.gz" \
       | tar -xz -C /usr/local && \
     rm /usr/local/hadoop && \
     ln -s "/usr/local/hadoop-${HADOOP_VERSION}" /usr/local/hadoop && \
