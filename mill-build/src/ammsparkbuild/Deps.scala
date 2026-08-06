@@ -15,11 +15,10 @@ object Deps {
   def jsoniterScalaMacros =
     mvn"com.github.plokhotnyuk.jsoniter-scala::jsoniter-scala-macros:${Versions.jsoniterScala}"
   def log4j2 = mvn"org.apache.logging.log4j:log4j-core:2.17.2"
-  // slf4j -> log4j 1.x binding, matching the log4j.properties used by the tests.
-  // Having it on the tests classpath ensures slf4j binds to log4j at startup,
-  // rather than to the NOP logger - in particular for the spark-distrib tests,
-  // where Spark (and its own slf4j binding) is only loaded later from SPARK_HOME.
-  def slf4jLog4j12   = mvn"org.slf4j:slf4j-log4j12:1.7.36"
+  // Having an slf4j binding on the tests classpath ensures slf4j initializes at
+  // startup, rather than falling back to the NOP logger. Don't use the log4j 1.x
+  // binding here: its reload4j classes conflict with Spark 3.3+'s log4j-1.2-api.
+  def slf4jSimple    = mvn"org.slf4j:slf4j-simple:1.7.36"
   def scalaKernelApi = mvn"sh.almond:::scala-kernel-api:${Versions.almond}"
   def scalatags      = mvn"com.lihaoyi::scalatags:0.13.1"
   def sparkSql(sv: String) = {

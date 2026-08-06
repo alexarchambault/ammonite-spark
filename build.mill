@@ -426,7 +426,7 @@ trait TestDefinitions     extends CrossScalaModule with WithPropertyFile
   def mvnDeps = super.mvnDeps() ++ Seq(
     Deps.ammoniteCompiler.exclude(("com.google.guava", "guava")),
     Deps.ammoniteRepl.exclude(("com.google.guava", "guava")),
-    Deps.slf4jLog4j12,
+    Deps.slf4jSimple,
     Deps.utest
   )
 }
@@ -462,7 +462,7 @@ trait LocalTests     extends ScalaModule with Cross.Module[SparkMaven] with With
   def mvnDeps = super.mvnDeps() ++ Seq(
     Deps.ammoniteCompiler.exclude(("com.google.guava", "guava")),
     Deps.ammoniteRepl.exclude(("com.google.guava", "guava")),
-    Deps.slf4jLog4j12,
+    Deps.slf4jSimple,
     Deps.utest
   )
 

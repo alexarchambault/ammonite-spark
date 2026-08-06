@@ -123,10 +123,9 @@ object Init {
       .toURI
       .toASCIIString
 
-    // Force slf4j to bind now (to the log4j 1.x backend on the tests classpath),
-    // before the spark-distrib tests load Spark - and its own slf4j jars - from
-    // SPARK_HOME. Otherwise slf4j would have already defaulted to the NOP logger,
-    // silently dropping all the Spark logs.
+    // Force slf4j to bind now, before the spark-distrib tests load Spark and its
+    // own slf4j jars from SPARK_HOME. Otherwise slf4j would have already defaulted
+    // to the NOP logger, silently dropping all the Spark logs.
     org.slf4j.LoggerFactory.getLogger("ammonite.spark").debug("slf4j logging initialized")
   }
 
