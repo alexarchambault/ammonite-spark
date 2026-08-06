@@ -107,6 +107,8 @@ object SparkDependencies {
         "30"
       case Array("3", n) =>
         "32"
+      case Array("4", _) =>
+        "32"
       case _ =>
         System.err.println(s"Warning: unrecognized Spark version ($sv), assuming 2.4.x")
         "24"

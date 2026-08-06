@@ -455,10 +455,20 @@ trait TestDefinitions     extends CrossScalaModule with WithPropertyFile
 
 lazy val sparkMavenValues: Seq[SparkMaven] = {
   val first213SparkVersion = Version("3.2.0")
+  val firstSpark4Version   = Version("4.0.0")
+  val spark4ScalaVersions = sparkDistributionScalaVersions.iterator.collect {
+    case (distribution, scalaVersion) if Version(distribution.sparkVersion) >= firstSpark4Version =>
+      distribution.sparkVersion -> scalaVersion
+  }.toMap
   for {
-    sv       <- Versions.scala
     sparkVer <- SparkVersions.sparkMavenVersions
-    value = SparkMaven(sparkVer, sv, "8")
+    // Spark 4 artifacts use APIs added in specific Scala 2.13 patch releases.
+    // Test them with the Scala version of the corresponding Spark distribution.
+    sv <-
+      if (Version(sparkVer) >= firstSpark4Version) Seq(spark4ScalaVersions(sparkVer))
+      else Versions.scala
+    jvmId = if (Version(sparkVer) >= firstSpark4Version) "17" else "8"
+    value = SparkMaven(sparkVer, sv, jvmId)
     if Version(value.sparkVersion) >= first213SparkVersion || value.scalaVersion.startsWith("2.12.")
   } yield value
 }
@@ -473,8 +483,9 @@ trait LocalTests     extends ScalaModule with Cross.Module[SparkMaven] with With
 
   def scalaVersion = sv
 
-  def propertyFilePath       = os.sub / "ammonite/ammonite-spark.properties"
-  def versionInProperties    = core(sv).publishVersion()
+  def propertyFilePath = os.sub / "ammonite/ammonite-spark.properties"
+  def versionInProperties =
+    core(if (sv.startsWith("2.13.")) Versions.scala213 else Versions.scala212).publishVersion()
   def dependencyResourcePath = os.sub / "ammonite/spark/amm-test-dependencies.txt"
 
   def moduleDeps = Seq(

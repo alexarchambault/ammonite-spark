@@ -11,9 +11,11 @@ set -eu
 # alongside --prefetch.
 # --hadoop-version MAJOR selects the Hadoop major version of the YARN cluster.
 # Supported values are 2 (the default) and 3.
+# --jvm-version VERSION selects the JVM used by Mill and the forked tests.
 PREFETCH_SPARK_VERSION=""
 SCALA_VERSION=""
 HADOOP_MAJOR_VERSION=2
+JVM_VERSION=11
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -42,6 +44,15 @@ while [ "$#" -gt 0 ]; do
         exit 1
       fi
       HADOOP_MAJOR_VERSION="$1"
+      shift
+      ;;
+    --jvm-version)
+      shift
+      if [ "$#" = 0 ]; then
+        echo "--jvm-version expects a JVM version" 1>&2
+        exit 1
+      fi
+      JVM_VERSION="$1"
       shift
       ;;
     *)
@@ -296,7 +307,10 @@ cat > .mill-jvm-opts << FOO
 -Xmx1g
 FOO
 
-eval "\$(coursier java --env --jvm 11)"
+eval "\$(coursier java --env --jvm $JVM_VERSION)"
+
+export HADOOP_CONF_DIR=/etc/hadoop/conf
+export YARN_CONF_DIR=/etc/hadoop/conf
 
 apt-get update
 apt-get install -y curl

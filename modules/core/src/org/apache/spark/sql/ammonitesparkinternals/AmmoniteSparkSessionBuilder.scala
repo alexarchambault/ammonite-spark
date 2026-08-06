@@ -378,10 +378,18 @@ class AmmoniteSparkSessionBuilder(implicit
     this
   }
 
+  private var master0 = Option.empty[String]
+
+  override def master(master: String): this.type = {
+    master0 = Some(master)
+    super.master(master)
+    this
+  }
+
   var classServerOpt = Option.empty[AmmoniteClassServer]
 
   private def isYarn(): Boolean =
-    options0.get("spark.master").exists(_.startsWith("yarn"))
+    master0.orElse(options0.get("spark.master")).exists(_.startsWith("yarn"))
 
   private def hiveSupport(): Boolean =
     options0.get("spark.sql.catalogImplementation").contains("hive")
