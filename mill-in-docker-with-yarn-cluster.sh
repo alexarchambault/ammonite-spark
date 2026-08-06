@@ -235,6 +235,7 @@ fi
 echo "YARN ResourceManager cluster info:"
 echo "$CLUSTER_INFO"
 echo "Hadoop cluster version: $HADOOP_CLUSTER_VERSION"
+export HADOOP_CLUSTER_VERSION
 
 
 export INPUT_TXT_URL="hdfs:///user/root/input.txt"

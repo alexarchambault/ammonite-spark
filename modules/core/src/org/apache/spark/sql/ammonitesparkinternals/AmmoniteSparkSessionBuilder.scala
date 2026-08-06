@@ -407,6 +407,9 @@ class AmmoniteSparkSessionBuilder(implicit
     if (isYarn() && !SparkDependencies.sparkYarnFound())
       deps = ("spark-yarn", SparkDependencies.sparkYarnDependency) :: deps
 
+    if (isYarn() && !SparkDependencies.yarnAmIpFilterFound())
+      deps = ("hadoop-yarn-server-web-proxy", SparkDependencies.yarnWebProxyDependency) :: deps
+
     if (deps.nonEmpty) {
       printLine(
         s"Loading ${deps.map(_._1).mkString(", ")}",
