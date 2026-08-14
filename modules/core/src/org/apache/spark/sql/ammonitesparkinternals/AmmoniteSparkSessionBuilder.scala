@@ -274,19 +274,21 @@ class AmmoniteSparkSessionBuilder(implicit
 
   private val options0: scala.collection.Map[String, String] = {
 
-    def fieldVia(name: String): Option[scala.collection.mutable.HashMap[String, String]] =
-      try {
-        val f = classOf[SparkSession.Builder].getDeclaredField(name)
+    def optionsField(cls: Class[_]): Option[java.lang.reflect.Field] =
+      if (cls == null)
+        None
+      else
+        cls.getDeclaredFields
+          .find(f => f.getName == "options" || f.getName.endsWith("$$options"))
+          .orElse(optionsField(cls.getSuperclass))
+
+    def optionsViaReflection(): Option[scala.collection.mutable.Map[String, String]] =
+      optionsField(classOf[SparkSession.Builder]).map { f =>
         f.setAccessible(true)
-        Some(f.get(this).asInstanceOf[scala.collection.mutable.HashMap[String, String]])
-      }
-      catch {
-        case _: NoSuchFieldException =>
-          None
+        f.get(this).asInstanceOf[scala.collection.mutable.Map[String, String]]
       }
 
-    fieldVia("org$apache$spark$sql$SparkSession$Builder$$options")
-      .orElse(fieldVia("options"))
+    optionsViaReflection()
       .getOrElse {
         printLine(
           "Warning: can't read SparkSession Builder options (options field not found)",
@@ -378,18 +380,10 @@ class AmmoniteSparkSessionBuilder(implicit
     this
   }
 
-  private var master0 = Option.empty[String]
-
-  override def master(master: String): this.type = {
-    master0 = Some(master)
-    super.master(master)
-    this
-  }
-
   var classServerOpt = Option.empty[AmmoniteClassServer]
 
   private def isYarn(): Boolean =
-    master0.orElse(options0.get("spark.master")).exists(_.startsWith("yarn"))
+    options0.get("spark.master").exists(_.startsWith("yarn"))
 
   private def hiveSupport(): Boolean =
     options0.get("spark.sql.catalogImplementation").contains("hive")
