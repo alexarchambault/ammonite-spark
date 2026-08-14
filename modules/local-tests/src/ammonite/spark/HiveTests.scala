@@ -17,11 +17,11 @@ object HiveTests extends TestSuite {
       Local.master,
       Versions.sparkVersion,
       Seq(
-        "spark.sql.warehouse.dir" -> warehouse.toNIO.toUri.toASCIIString,
+        "spark.sql.catalogImplementation" -> "hive",
+        "spark.sql.warehouse.dir"         -> warehouse.toNIO.toUri.toASCIIString,
         "spark.hadoop.javax.jdo.option.ConnectionURL" ->
           s"jdbc:derby:;databaseName=${metastoreDb.toString};create=true"
-      ),
-      prependBuilderCalls = Seq(".enableHiveSupport()")
+      )
     )
   )
 
@@ -32,11 +32,11 @@ object HiveTests extends TestSuite {
 
   val tests = Tests {
     test("enable Hive support") {
-      check.session(
-        """
-            @ val catalogImplementation = spark.conf.get("spark.sql.catalogImplementation")
-            catalogImplementation: String = "hive"
-
+      val hiveQueries =
+        if (Versions.sparkVersion.startsWith("2."))
+          ""
+        else
+          """
             @ spark.sql("CREATE TABLE hive_test (value INT) USING hive")
 
             @ spark.sql("INSERT INTO hive_test VALUES (2), (1)")
@@ -46,6 +46,14 @@ object HiveTests extends TestSuite {
             @ assert(values.sameElements(Array(1, 2)))
 
             @ spark.sql("DROP TABLE hive_test")
+          """
+
+      check.session(
+        s"""
+            @ val catalogImplementation = spark.conf.get("spark.sql.catalogImplementation")
+            catalogImplementation: String = "hive"
+
+            $hiveQueries
         """
       )
     }
