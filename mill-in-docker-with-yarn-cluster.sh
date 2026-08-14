@@ -87,6 +87,10 @@ dump_yarn_logs() {
   # yarn.nodemanager.delete.debug-delay-sec keeps the container logs around for
   # a while, so dump them here (before the container is removed) when the tests
   # failed. Log aggregation isn't enabled, so we read the on-disk logs directly.
+  if ! docker container inspect "$NAMENODE" >/dev/null 2>&1; then
+    echo "YARN cluster container $NAMENODE was not started; no YARN logs to dump"
+    return
+  fi
   echo "===== YARN cluster container output ====="
   docker logs "$NAMENODE" 2>&1 || true
   echo "===== YARN daemon and application logs ====="
@@ -152,7 +156,13 @@ EOF
 fi
 
 if [ ! -x "$CACHE/coursier" ]; then
-  curl -fL https://github.com/coursier/coursier/releases/download/v2.1.25-M25/cs-x86_64-pc-linux.gz | gzip -d > "$CACHE/coursier"
+  COURSIER_GZ="$CACHE/coursier.gz"
+  rm -f "$COURSIER_GZ"
+  curl --retry 5 --retry-all-errors --retry-delay 2 -fL \
+    -o "$COURSIER_GZ" \
+    https://github.com/coursier/coursier/releases/download/v2.1.25-M25/cs-x86_64-pc-linux.gz
+  gzip -dc "$COURSIER_GZ" > "$CACHE/coursier"
+  rm -f "$COURSIER_GZ"
   chmod +x "$CACHE/coursier"
 fi
 
