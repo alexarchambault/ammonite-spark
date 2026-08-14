@@ -67,7 +67,7 @@ case "$HADOOP_MAJOR_VERSION" in
     ;;
   3)
     HADOOP_3_VERSION=3.3.6
-    YARN_CLUSTER_IMAGE="ammonite-spark/yarn-cluster:hadoop-$HADOOP_3_VERSION"
+    YARN_CLUSTER_IMAGE="ammonite-spark/yarn-cluster:hadoop-$HADOOP_3_VERSION-jvm-$JVM_VERSION"
     ;;
   *)
     echo "--hadoop-version expects 2 or 3, got '$HADOOP_MAJOR_VERSION'" 1>&2
@@ -143,9 +143,11 @@ if [ "$HADOOP_MAJOR_VERSION" = 3 ] && ! docker image inspect "$YARN_CLUSTER_IMAG
   echo "Building Hadoop $HADOOP_3_VERSION YARN cluster image" 1>&2
   docker build --load -t "$YARN_CLUSTER_IMAGE" \
     --build-arg "HADOOP_VERSION=$HADOOP_3_VERSION" \
+    --build-arg "JVM_VERSION=$JVM_VERSION" \
     - <<'EOF'
 FROM docker.io/alexarchambault/yarn-cluster
 ARG HADOOP_VERSION
+ARG JVM_VERSION
 ENV HADOOP_HOME=/usr/local/hadoop \
     HDFS_NAMENODE_USER=root \
     HDFS_DATANODE_USER=root \
@@ -163,6 +165,17 @@ RUN cp -a /usr/local/hadoop/etc/hadoop /tmp/hadoop-conf && \
     chmod +x /usr/local/hadoop/etc/hadoop/*-env.sh && \
     rm -rf /tmp/hadoop-root/dfs/name && \
     /usr/local/hadoop/bin/hdfs namenode -format -force
+
+# Keep the Hadoop daemons on the Java 8 runtime from the base image, but install
+# Java 17 alongside it for Spark 4's ApplicationMaster and executors.
+RUN if [ "$JVM_VERSION" = 17 ]; then \
+      curl --retry 5 --retry-delay 2 -fsSL \
+        "https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jdk/hotspot/normal/eclipse" \
+        -o /tmp/jdk.tar.gz && \
+      mkdir -p /usr/java/jdk-17 && \
+      tar -xzf /tmp/jdk.tar.gz -C /usr/java/jdk-17 --strip-components=1 && \
+      rm -f /tmp/jdk.tar.gz; \
+    fi
 EOF
 fi
 
@@ -238,7 +251,7 @@ echo "Querying Hadoop version from the YARN ResourceManager" 1>&2
 RETRY=20
 HADOOP_CLUSTER_VERSION=""
 while [ "$RETRY" -gt 0 ] && [ -z "$HADOOP_CLUSTER_VERSION" ]; do
-  CLUSTER_INFO="$(curl -fsS http://localhost:8088/ws/v1/cluster/info || true)"
+  CLUSTER_INFO="$(docker exec "$NAMENODE" curl -fsS http://localhost:8088/ws/v1/cluster/info || true)"
   HADOOP_CLUSTER_VERSION="$(
     echo "$CLUSTER_INFO" | sed -n 's/.*"hadoopVersion"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
   )"
@@ -321,6 +334,8 @@ apt-get install -y curl
 # hostname, which it can't reach, and dies right after registering with the RM.
 export SPARK_DRIVER_HOST="\$(getent hosts "\$(hostname)" | awk '{print \$1; exit}')"
 echo "SPARK_DRIVER_HOST=\$SPARK_DRIVER_HOST"
+
+$(if [ "$JVM_VERSION" = 17 ]; then echo "export SPARK_YARN_JAVA_HOME=/usr/java/jdk-17"; fi)
 
 export AMMONITE_SPARK_FORCED_VERSION="0.1-SNAPSHOT"
 export AMMONITE_SPARK_FORCED_COMMIT_HASH="XXXX"

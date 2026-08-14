@@ -30,7 +30,13 @@ object Init {
   // driver back (see mill-in-docker-with-yarn-cluster.sh). Empty for the local
   // and standalone tests, where the variable isn't set.
   private def extraConf: Seq[(String, String)] =
-    sys.env.get("SPARK_DRIVER_HOST").toSeq.map(h => "spark.driver.host" -> h)
+    sys.env.get("SPARK_DRIVER_HOST").toSeq.map(h => "spark.driver.host" -> h) ++
+      sys.env.get("SPARK_YARN_JAVA_HOME").toSeq.flatMap { javaHome =>
+        Seq(
+          "spark.yarn.appMasterEnv.JAVA_HOME" -> javaHome,
+          "spark.executorEnv.JAVA_HOME"       -> javaHome
+        )
+      }
 
   def init(
     master: String,
