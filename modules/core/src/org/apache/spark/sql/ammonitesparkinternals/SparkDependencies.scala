@@ -105,13 +105,11 @@ object SparkDependencies {
         "24"
       case Array("3", n) if Try(n.toInt).toOption.exists(_ <= 1) =>
         "30"
-      case Array("3", n) =>
-        "32"
-      case Array("4", _) =>
+      case Array("3" | "4", _) =>
         "32"
       case _ =>
-        System.err.println(s"Warning: unrecognized Spark version ($sv), assuming 2.4.x")
-        "24"
+        System.err.println(s"Warning: unrecognized Spark version ($sv), assuming 3.2.x or 4.x")
+        "32"
     }
     Dependency.of(
       "sh.almond",
