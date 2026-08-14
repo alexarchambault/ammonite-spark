@@ -216,8 +216,8 @@ trait AlmondSpark     extends CrossScalaModule with AmmSparkPublishModule
     Deps.jsoniterScalaMacros,
     Deps.log4j2,
     Deps.scalaKernelApi
-      .exclude(("com.lihaoyi", s"ammonite-compiler_$crossScalaVersion"))
-      .exclude(("com.lihaoyi", s"ammonite-repl-api_$crossScalaVersion")),
+      .exclude(("sh.almond.ammonite", s"ammonite-compiler_$crossScalaVersion"))
+      .exclude(("sh.almond.ammonite", s"ammonite-repl-api_$crossScalaVersion")),
     Deps.sparkSql(scalaVersion())
   )
   def repositories = super.repositories() ++ Seq(
@@ -235,8 +235,8 @@ trait AlmondToreeSpark extends CrossScalaModule with AmmSparkPublishModule with 
   )
   def compileMvnDeps = super.compileMvnDeps() ++ Seq(
     Deps.scalaKernelApi
-      .exclude(("com.lihaoyi", s"ammonite-compiler_$crossScalaVersion"))
-      .exclude(("com.lihaoyi", s"ammonite-repl-api_$crossScalaVersion")),
+      .exclude(("sh.almond.ammonite", s"ammonite-compiler_$crossScalaVersion"))
+      .exclude(("sh.almond.ammonite", s"ammonite-repl-api_$crossScalaVersion")),
     Deps.sparkSql(scalaVersion())
   )
   def repositories = super.repositories() ++ Seq(
