@@ -166,16 +166,14 @@ RUN cp -a /usr/local/hadoop/etc/hadoop /tmp/hadoop-conf && \
     rm -rf /tmp/hadoop-root/dfs/name && \
     /usr/local/hadoop/bin/hdfs namenode -format -force
 
-# Keep the Hadoop daemons on the Java 8 runtime from the base image, but install
-# Java 17 alongside it for Spark 4's ApplicationMaster and executors.
-RUN if [ "$JVM_VERSION" = 17 ]; then \
-      curl --retry 5 --retry-delay 2 -fsSL \
-        "https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jdk/hotspot/normal/eclipse" \
-        -o /tmp/jdk.tar.gz && \
-      mkdir -p /usr/java/jdk-17 && \
-      tar -xzf /tmp/jdk.tar.gz -C /usr/java/jdk-17 --strip-components=1 && \
-      rm -f /tmp/jdk.tar.gz; \
-    fi
+RUN curl --retry 5 --retry-delay 2 -fL \
+      -o /tmp/cs.gz \
+      https://github.com/coursier/coursier/releases/download/v2.1.25-M26/cs-x86_64-pc-linux.gz && \
+    gzip -dc /tmp/cs.gz > /usr/local/bin/cs && \
+    rm -f /tmp/cs.gz && \
+    chmod +x /usr/local/bin/cs && \
+    cs java-home --jvm "$JVM_VERSION"
+
 EOF
 fi
 
@@ -292,6 +290,12 @@ echo cat "$HADOOP_CONF_CACHE/yarn-site.xml"
 cat "$HADOOP_CONF_CACHE/yarn-site.xml"
 echo
 
+SPARK_YARN_JAVA_HOME=""
+if [ "$HADOOP_MAJOR_VERSION" = 3 ]; then
+  SPARK_YARN_JAVA_HOME="$(docker exec "$NAMENODE" cs java-home --jvm "$JVM_VERSION")"
+  echo "Spark YARN Java home: $SPARK_YARN_JAVA_HOME"
+fi
+
 cat > "$CACHE/run.sh" << EOF
 #!/usr/bin/env bash
 set -e
@@ -321,6 +325,7 @@ cat > .mill-jvm-opts << FOO
 FOO
 
 eval "\$(coursier java --env --jvm $JVM_VERSION)"
+$(if [ -n "$SPARK_YARN_JAVA_HOME" ]; then echo "export SPARK_YARN_JAVA_HOME=$SPARK_YARN_JAVA_HOME"; fi)
 
 export HADOOP_CONF_DIR=/etc/hadoop/conf
 export YARN_CONF_DIR=/etc/hadoop/conf
@@ -334,8 +339,6 @@ apt-get install -y curl
 # hostname, which it can't reach, and dies right after registering with the RM.
 export SPARK_DRIVER_HOST="\$(getent hosts "\$(hostname)" | awk '{print \$1; exit}')"
 echo "SPARK_DRIVER_HOST=\$SPARK_DRIVER_HOST"
-
-$(if [ "$JVM_VERSION" = 17 ]; then echo "export SPARK_YARN_JAVA_HOME=/usr/java/jdk-17"; fi)
 
 export AMMONITE_SPARK_FORCED_VERSION="0.1-SNAPSHOT"
 export AMMONITE_SPARK_FORCED_COMMIT_HASH="XXXX"
