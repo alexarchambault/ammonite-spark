@@ -87,24 +87,23 @@ dump_yarn_logs() {
   # yarn.nodemanager.delete.debug-delay-sec keeps the container logs around for
   # a while, so dump them here (before the container is removed) when the tests
   # failed. Log aggregation isn't enabled, so we read the on-disk logs directly.
-  echo "===== ResourceManager log ====="
-  docker exec "$NAMENODE" bash -c 'cat /usr/local/hadoop/logs/yarn-*-resourcemanager-*.log' || true
-  echo "===== YARN container logs (AM + executors) ====="
+  echo "===== YARN cluster container output ====="
+  docker logs "$NAMENODE" 2>&1 || true
+  echo "===== YARN daemon and application logs ====="
   docker exec "$NAMENODE" bash -c '
-    for f in $(find /usr/local/hadoop/logs/userlogs -type f | sort); do
+    find /usr/local/hadoop/logs /tmp/hadoop-root /var/log/hadoop-yarn \
+      -type f \( \
+        -name "*resourcemanager*" -o \
+        -name "*nodemanager*" -o \
+        -name "*.log" -o \
+        -name syslog -o \
+        -name stdout -o \
+        -name stderr \
+      \) -print0 2>/dev/null | sort -z | while IFS= read -r -d "" f; do
       echo "----- $f -----"
       cat "$f"
-    done' || true
-  # The container console (stdout/stderr above) doesn't always carry the AM's
-  # log4j output - e.g. when it logs to a file. The container working dirs (kept
-  # around by debug-delay-sec) hold those *.log files, which contain the actual
-  # AM exception.
-  echo "===== YARN container working-dir logs (*.log) ====="
-  docker exec "$NAMENODE" bash -c '
-    for f in $(find /tmp/hadoop-root/nm-local-dir -name "*.log" | sort); do
-      echo "----- $f -----"
-      cat "$f"
-    done' || true
+    done
+  ' || true
 }
 
 cleanup() {
