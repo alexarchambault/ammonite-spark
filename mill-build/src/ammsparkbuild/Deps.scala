@@ -4,9 +4,9 @@ import mill.scalalib.*
 
 object Deps {
   def almondToreeHooks = mvn"sh.almond::toree-hooks:${Versions.almond}"
-  def ammoniteCompiler = mvn"sh.almond.tmp.ammonite:::ammonite-compiler:${Versions.ammonite}"
-  def ammoniteReplApi  = mvn"sh.almond.tmp.ammonite:::ammonite-repl-api:${Versions.ammonite}"
-  def ammoniteRepl     = mvn"sh.almond.tmp.ammonite:::ammonite-repl:${Versions.ammonite}"
+  def ammoniteCompiler = mvn"sh.almond.ammonite:::ammonite-compiler:${Versions.ammonite}"
+  def ammoniteReplApi  = mvn"sh.almond.ammonite:::ammonite-repl-api:${Versions.ammonite}"
+  def ammoniteRepl     = mvn"sh.almond.ammonite:::ammonite-repl:${Versions.ammonite}"
 
   def classPathUtil = mvn"io.get-coursier::class-path-util:0.1.4"
   def jettyServer   = mvn"org.eclipse.jetty:jetty-server:9.4.58.v20250814"
