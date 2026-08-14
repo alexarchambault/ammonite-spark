@@ -168,7 +168,7 @@ RUN cp -a /usr/local/hadoop/etc/hadoop /tmp/hadoop-conf && \
 
 RUN curl --retry 5 --retry-delay 2 -fL \
       -o /tmp/cs.gz \
-      https://github.com/coursier/coursier/releases/download/v2.1.25-M26/cs-x86_64-pc-linux.gz && \
+      https://github.com/coursier/coursier/releases/download/v2.1.25-M26/cs-x86_64-pc-linux-compat.gz && \
     gzip -dc /tmp/cs.gz > /usr/local/bin/cs && \
     rm -f /tmp/cs.gz && \
     chmod +x /usr/local/bin/cs && \
