@@ -11,9 +11,11 @@ set -eu
 # alongside --prefetch.
 # --hadoop-version MAJOR selects the Hadoop major version of the YARN cluster.
 # Supported values are 2 (the default) and 3.
+# --jvm-version VERSION selects the JVM used by Mill and the forked tests.
 PREFETCH_SPARK_VERSION=""
 SCALA_VERSION=""
 HADOOP_MAJOR_VERSION=2
+JVM_VERSION=11
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -44,6 +46,15 @@ while [ "$#" -gt 0 ]; do
       HADOOP_MAJOR_VERSION="$1"
       shift
       ;;
+    --jvm-version)
+      shift
+      if [ "$#" = 0 ]; then
+        echo "--jvm-version expects a JVM version" 1>&2
+        exit 1
+      fi
+      JVM_VERSION="$1"
+      shift
+      ;;
     *)
       break
       ;;
@@ -56,7 +67,7 @@ case "$HADOOP_MAJOR_VERSION" in
     ;;
   3)
     HADOOP_3_VERSION=3.3.6
-    YARN_CLUSTER_IMAGE="ammonite-spark/yarn-cluster:hadoop-$HADOOP_3_VERSION"
+    YARN_CLUSTER_IMAGE="ammonite-spark/yarn-cluster:hadoop-$HADOOP_3_VERSION-jvm-$JVM_VERSION"
     ;;
   *)
     echo "--hadoop-version expects 2 or 3, got '$HADOOP_MAJOR_VERSION'" 1>&2
@@ -132,9 +143,11 @@ if [ "$HADOOP_MAJOR_VERSION" = 3 ] && ! docker image inspect "$YARN_CLUSTER_IMAG
   echo "Building Hadoop $HADOOP_3_VERSION YARN cluster image" 1>&2
   docker build --load -t "$YARN_CLUSTER_IMAGE" \
     --build-arg "HADOOP_VERSION=$HADOOP_3_VERSION" \
+    --build-arg "JVM_VERSION=$JVM_VERSION" \
     - <<'EOF'
 FROM docker.io/alexarchambault/yarn-cluster
 ARG HADOOP_VERSION
+ARG JVM_VERSION
 ENV HADOOP_HOME=/usr/local/hadoop \
     HDFS_NAMENODE_USER=root \
     HDFS_DATANODE_USER=root \
@@ -152,6 +165,15 @@ RUN cp -a /usr/local/hadoop/etc/hadoop /tmp/hadoop-conf && \
     chmod +x /usr/local/hadoop/etc/hadoop/*-env.sh && \
     rm -rf /tmp/hadoop-root/dfs/name && \
     /usr/local/hadoop/bin/hdfs namenode -format -force
+
+RUN curl --retry 5 --retry-delay 2 -fL \
+      -o /tmp/cs.gz \
+      https://github.com/coursier/coursier/releases/download/v2.1.25-M26/cs-x86_64-pc-linux-static.gz && \
+    gzip -dc /tmp/cs.gz > /usr/local/bin/cs && \
+    rm -f /tmp/cs.gz && \
+    chmod +x /usr/local/bin/cs && \
+    cs java-home --jvm "$JVM_VERSION"
+
 EOF
 fi
 
@@ -227,7 +249,7 @@ echo "Querying Hadoop version from the YARN ResourceManager" 1>&2
 RETRY=20
 HADOOP_CLUSTER_VERSION=""
 while [ "$RETRY" -gt 0 ] && [ -z "$HADOOP_CLUSTER_VERSION" ]; do
-  CLUSTER_INFO="$(curl -fsS http://localhost:8088/ws/v1/cluster/info || true)"
+  CLUSTER_INFO="$(docker exec "$NAMENODE" curl -fsS http://localhost:8088/ws/v1/cluster/info || true)"
   HADOOP_CLUSTER_VERSION="$(
     echo "$CLUSTER_INFO" | sed -n 's/.*"hadoopVersion"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'
   )"
@@ -268,6 +290,12 @@ echo cat "$HADOOP_CONF_CACHE/yarn-site.xml"
 cat "$HADOOP_CONF_CACHE/yarn-site.xml"
 echo
 
+SPARK_YARN_JAVA_HOME=""
+if [ "$HADOOP_MAJOR_VERSION" = 3 ]; then
+  SPARK_YARN_JAVA_HOME="$(docker exec "$NAMENODE" cs java-home --jvm "$JVM_VERSION")"
+  echo "Spark YARN Java home: $SPARK_YARN_JAVA_HOME"
+fi
+
 cat > "$CACHE/run.sh" << EOF
 #!/usr/bin/env bash
 set -e
@@ -296,7 +324,11 @@ cat > .mill-jvm-opts << FOO
 -Xmx1g
 FOO
 
-eval "\$(coursier java --env --jvm 11)"
+eval "\$(coursier java --env --jvm $JVM_VERSION)"
+$(if [ -n "$SPARK_YARN_JAVA_HOME" ]; then echo "export SPARK_YARN_JAVA_HOME=$SPARK_YARN_JAVA_HOME"; fi)
+
+export HADOOP_CONF_DIR=/etc/hadoop/conf
+export YARN_CONF_DIR=/etc/hadoop/conf
 
 apt-get update
 apt-get install -y curl

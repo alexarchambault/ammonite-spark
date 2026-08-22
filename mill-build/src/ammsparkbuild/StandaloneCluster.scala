@@ -29,7 +29,7 @@ trait StandaloneCluster extends Module {
     val handle = new StandaloneCluster.SparkSlaveHandle(home, extraEnv())
     handle.tryClose()
     os.proc(
-      home / "sbin" / "start-slave.sh",
+      StandaloneCluster.workerScript(home, "start"),
       "--host",
       standaloneClusterHost,
       master,
@@ -44,6 +44,12 @@ trait StandaloneCluster extends Module {
 }
 
 object StandaloneCluster {
+
+  private def workerScript(home: os.Path, action: String): os.Path = {
+    val worker = home / "sbin" / s"$action-worker.sh"
+    if (os.exists(worker)) worker
+    else home / "sbin" / s"$action-slave.sh"
+  }
 
   // Handle on a running Spark standalone master. `master` is the SPARK_MASTER URL;
   // close() stops the master.
@@ -67,7 +73,7 @@ object StandaloneCluster {
     extraEnv: Map[String, String]
   ) extends AutoCloseable {
     private def close0(check: Boolean = true): Unit =
-      os.proc(home / "sbin" / "stop-slave.sh")
+      os.proc(workerScript(home, "stop"))
         .call(cwd = home, env = extraEnv, check = check, stdin = os.Inherit, stdout = os.Inherit)
     def tryClose(): Unit =
       close0(check = false)

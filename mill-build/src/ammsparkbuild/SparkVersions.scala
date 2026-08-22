@@ -13,9 +13,13 @@ object SparkVersions {
     SparkDistribution("3.3.4", hadoopVersion = "2", jvmId = "8"),
     SparkDistribution("3.3.4", hadoopVersion = "3", jvmId = "8"),
     SparkDistribution("3.4.4", hadoopVersion = "3", jvmId = "8"),
-    SparkDistribution("3.5.8", hadoopVersion = "3", jvmId = "8")
+    SparkDistribution("3.5.8", hadoopVersion = "3", jvmId = "8"),
+    SparkDistribution("4.0.3", hadoopVersion = "3", jvmId = "17"),
+    SparkDistribution("4.1.2", hadoopVersion = "3", jvmId = "17"),
+    SparkDistribution("4.2.0", hadoopVersion = "3", jvmId = "17")
   )
 
-  val sparkMavenVersions = Seq("2.4.4", "3.0.3", "3.2.4", "3.3.4", "3.4.4", "3.5.8")
+  val sparkMavenVersions =
+    Seq("2.4.4", "3.0.3", "3.2.4", "3.3.4", "3.4.4", "3.5.8", "4.0.3", "4.1.2", "4.2.0")
 
 }

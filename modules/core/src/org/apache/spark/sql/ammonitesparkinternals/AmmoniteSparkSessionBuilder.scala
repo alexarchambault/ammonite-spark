@@ -274,19 +274,21 @@ class AmmoniteSparkSessionBuilder(implicit
 
   private val options0: scala.collection.Map[String, String] = {
 
-    def fieldVia(name: String): Option[scala.collection.mutable.HashMap[String, String]] =
-      try {
-        val f = classOf[SparkSession.Builder].getDeclaredField(name)
+    def optionsField(cls: Class[_]): Option[java.lang.reflect.Field] =
+      if (cls == null)
+        None
+      else
+        cls.getDeclaredFields
+          .find(f => f.getName == "options" || f.getName.endsWith("$$options"))
+          .orElse(optionsField(cls.getSuperclass))
+
+    def optionsViaReflection(): Option[scala.collection.mutable.Map[String, String]] =
+      optionsField(classOf[SparkSession.Builder]).map { f =>
         f.setAccessible(true)
-        Some(f.get(this).asInstanceOf[scala.collection.mutable.HashMap[String, String]])
-      }
-      catch {
-        case _: NoSuchFieldException =>
-          None
+        f.get(this).asInstanceOf[scala.collection.mutable.Map[String, String]]
       }
 
-    fieldVia("org$apache$spark$sql$SparkSession$Builder$$options")
-      .orElse(fieldVia("options"))
+    optionsViaReflection()
       .getOrElse {
         printLine(
           "Warning: can't read SparkSession Builder options (options field not found)",
