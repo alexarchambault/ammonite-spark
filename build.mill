@@ -1,4 +1,4 @@
-//| mill-version: 1.1.7
+//| mill-version: 1.1.8
 //| mill-jvm-version: 17
 
 package build
